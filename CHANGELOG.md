@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.3.0] – Meilenstein 3: Meta
+
+### Neu
+- **Seeperlen** als Zweitwährung: aus Ballonstarts und Zielen, nur im Spiel verdienbar
+- **Globale Upgrades** (Bottom-Bar „Upgrades“, bezahlt mit Seeperlen):
+  - pro Ware „Tempo“ (+25 % je Stufe für alle Betriebe dieser Ware) und „Preis“ (+20 % Verkaufspreis je Stufe), je 5 Stufen
+  - „Nachtschicht“: +1 h Offline-Ertrag je Stufe (bis 8 h)
+  - „Großes Lager“: +50 Lagerplatz pro Ware je Stufe
+  - „Startkapital“: mehr Münzen beim Start jeder Region (wirkt ab dem Regionswechsel in Meilenstein 4)
+  - Upgrades bleiben über alle Regionen erhalten
+- **Ballonstation** (Bauplatz, eine pro Region, 6 Stufen):
+  - leitet Waren aus dem Lager in einen Heißluftballon um; die offene Ladung zählt zur Reserve und wird nicht verkauft
+  - Umleiten lässt sich an- und ausschalten
+  - jeder Start bringt Münzen, Seeperlen und deckt Nebelfelder kostenlos auf; die Ladung wechselt und wächst mit jedem Start
+  - Ballon auf dem Startplatz bläht sich mit der Ladung auf; Flug-Animation über die aufgedeckten Felder
+  - Bottom-Bar „Ballons“ öffnet die Station bzw. erklärt, wie man sie baut
+- **Ziele & Tutorial**: 18 Ziele für Oberschwaben mit Tipps und Belohnungen (Münzen, Seeperlen)
+  - Ziel-Banner über der Bottom-Bar zeigt das nächste Ziel mit Fortschritt; antippen holt die Belohnung ab
+  - Liste unter „Ziele“ mit Fortschrittsbalken und „Abholen“
+- **Lieferketten-Übersicht** (Lager → Reiter „Lieferketten“): Produktion und Bedarf pro Ware und Sekunde, Engpässe rot markiert
+- Rote Hinweis-Punkte in der Bottom-Bar: Belohnung abholbar, Ballon startklar, Upgrade bezahlbar
+- Debug (`#debug`): zusätzlich „+10 Seeperlen“
+- Neue Werte zentral in `CONFIG.meta`, `CONFIG.balloon` und pro Region (`startCoins`, `unlock`, `buildings`, `chains`, `balloon`, `goals`)
+
+### Geändert
+- Spielstand `saveVersion` 3, mit Migration von Version 2
+- Startmünzen und Freischaltkosten stehen jetzt pro Region in `CONFIG.regions`
+- Bauplatz-Auswahl zeigt nur Betriebe, die in der Region verfügbar sind
+- Lager zeigt nur die Waren der aktuellen Region
+- Bottom-Sheet scrollt, wenn es höher als der Bildschirm ist
+- Balancing: Ein effizienter Test-Bot braucht für Oberschwaben jetzt ca. 22 Minuten (ohne Upgrades und Ballons ca. 28)
+
 ## [0.2.0] – Meilenstein 2: Wirtschaft MVP
 
 ### Neu

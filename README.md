@@ -12,5 +12,8 @@ Ein Idle-/Tycoon-Aufbauspiel rund um den Bodensee, gespielt auf einem Raster aus
 ## Spielen
 - Neblige Felder antippen und freischalten. Rohstofffelder (Wald, Kiesgrube, Weide) produzieren sofort.
 - Auf Bauplätzen Verarbeitungsbetriebe bauen (Sägewerk, Schreinerei, Betonwerk, Molkerei) und alle Gebäude bis Stufe 6 ausbauen.
-- Unter „Lager“ legst du fest, welche Waren automatisch verkauft werden.
-- Debug-Münzen: `index.html#debug` öffnen, dann Einstellungen → „Debug: +1.000 Münzen“.
+- Unter „Lager“ legst du fest, welche Waren automatisch verkauft werden. Der Reiter „Lieferketten“ zeigt Engpässe.
+- Eine Ballonstation belädt Heißluftballons mit Waren. Starts bringen Seeperlen und decken Nebel auf.
+- Seeperlen gibst du unter „Upgrades“ für dauerhafte, globale Verbesserungen aus.
+- „Ziele“ führen durch die Region und bringen Belohnungen.
+- Debug: `index.html#debug` öffnen, dann Einstellungen → „+1.000 Münzen“ bzw. „+10 Seeperlen“.

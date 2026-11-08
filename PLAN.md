@@ -100,11 +100,12 @@ Seit M2 (`saveVersion` 2):
 - `market: { sell: { ware: bool } }`
 - `stats: { unlocks, earned, produced: { ware: menge }, regionDone }`
 
-Ab M3 kommen dazu:
+Seit M3 (`saveVersion` 3):
 
-- `globalUpgrades`
-- `goals`
-- `balloons`
+- `globalUpgrades: { "speed:wood": 2, "price:planks": 1, "offline": 1, "storage": 0, "startCoins": 0 }` (bleibt beim Regionswechsel)
+- `goals: { claimed: ["oberschwaben:0", …] }` (pro Region)
+- `balloon: { fill: { ware: menge }, launches, load, t }` (pro Region)
+- `lifetime: { earned, pearls, launches, regions }` (bleibt)
 
 Regeln:
 
@@ -118,7 +119,7 @@ Regeln:
 |---|--------|--------|
 | 1 | Raster & Steuerung: 4.8.8-Rendering, Pan/Pinch/Tap, exakter Hit-Test, Felder freischalten mit Nebel und Animation, Grund-UI (Topbar, Bottom-Bar, Bottom-Sheet), einfaches Speichern der freigeschalteten Felder | ✅ fertig |
 | 2 | Wirtschaft MVP: Oberschwaben mit 3 Ketten (Holz → Bretter → Möbel, Kies → Beton, Milch → Butter), 6 Ausbaustufen, Lager/Verkauf mit Schalter, Transportpunkte auf Wegen, Speichern/Laden/Export/Import, Offline-Ertrag mit Dialog | ✅ fertig |
-| 3 | Meta: globale Upgrades, Seeperlen, Ballonstation, Ziele/Tutorial, Lieferketten-Übersicht | – |
+| 3 | Meta: globale Upgrades, Seeperlen, Ballonstation, Ziele/Tutorial, Lieferketten-Übersicht | ✅ fertig |
 | 4 | Luftschiff & Regionswechsel (Prestige), Region 2 Nordufer mit Wasser, Fähre, Booten | – |
 | 5+ | Regionen 3–6, Events (Föhn, Herbstnebel, Feste), Quadrat-Bonusfelder, Pfahlbauten, Dialekt, PWA (Manifest, Service Worker, Icons) | – |
 
@@ -141,3 +142,13 @@ Regeln:
   2. Rohstoffbetriebe liefern.
   3. Überschüsse werden verkauft.
 - **Balancing:** Ein gieriger Bot, der per Playwright direkt `simTick` antreibt, braucht für Oberschwaben ca. 27 Minuten. Das erste Upgrade ist direkt nach der ersten Freischaltung möglich.
+
+### Meta (Meilenstein 3)
+
+- **Globale Upgrades** (`CONFIG.meta`): Schlüssel `speed:<ware>`, `price:<ware>` und Spezial-Upgrades. Kosten in Seeperlen: `base × growth^Stufe`.
+  - Tempo wirkt in `cycleTime()`, Preis in `sellPrice()`, Lager in `storageCap()`, Nachtschicht in `offlineCapHours()`, Startkapital in `newState()`.
+- **Ladungen** (Ballon, ab M4 auch Luftschiff): `{ fill, load, t }`. `loadCargo()` zieht pro Tick mit `rate` Einheiten/s je Ware aus dem Lager.
+  - Die offene Ladung zählt zur Reserve (`updateReserve()` zu Beginn jedes Ticks), damit sie nicht verkauft wird.
+- **Ballon**: Ladung = `region.balloon[launches % n] × needGrowth^launches` (gedeckelt auf den Lagerplatz). Belohnung hängt von Warenwert und Stationsstufe ab. Aufgedeckte Felder kosten nichts, zählen aber zu den freigeschalteten Feldern.
+- **Ziele**: datengetrieben in `region.goals` mit Typ `unlock|all|level|build|produce|earn|launch|gup`. `goalProgress()` liefert `[ist, soll]`. Das erste offene Ziel steht im Banner (Tutorial).
+- **Balancing**: Test-Bot (kauft jeweils das Günstigste, startet Ballons, holt Ziele ab, kauft das billigste globale Upgrade) braucht ca. 22 min für Oberschwaben, ohne Meta ca. 28 min. Menschen spielen deutlich langsamer, so bleibt das Ziel von 30–45 min realistisch.
