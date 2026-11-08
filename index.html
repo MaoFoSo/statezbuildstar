@@ -139,6 +139,36 @@
   #loader h1 { margin: 0; font-size: 30px; color: var(--blue-dark); letter-spacing: .5px; }
   #loader p { margin: 0; color: var(--muted); font-style: italic; }
   #loader.hide { opacity: 0; pointer-events: none; }
+
+  /* Wirtschaft (M2) */
+  #modal .box, .cards { touch-action: pan-y; }
+  .io { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; background: #f5f8fa; border-radius: 14px; padding: 9px 11px; margin-top: 8px; }
+  .pill { display: inline-flex; align-items: center; gap: 4px; background: #fff; border-radius: 999px; padding: 3px 9px; font-weight: 700; font-size: 13px; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .arrow { color: var(--muted); font-weight: 800; font-size: 13px; }
+  .kv { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .kv b { color: var(--ink); }
+  .kv .up { color: #3e8f25; }
+  .status { margin-top: 8px; font-size: 13px; font-weight: 700; }
+  .status.bad { color: #c0503f; } .status.ok { color: #3e8f25; } .status.idle { color: var(--muted); }
+  .cards { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; max-height: 46vh; overflow: auto; }
+  .card { display: flex; align-items: center; gap: 10px; border: 1px solid #e6ecf0; border-radius: 16px; padding: 10px; }
+  .card .ic { font-size: 26px; width: 36px; text-align: center; flex: none; }
+  .card .mid { flex: 1; min-width: 0; }
+  .card .mid b { display: block; font-size: 15px; }
+  .card .mid small { color: var(--muted); font-size: 12px; display: block; }
+  .card .mid small.warn { color: #c0503f; }
+  .card button { border: 0; border-radius: 12px; padding: 9px 10px; font: inherit; font-weight: 800; font-size: 14px; color: #fff; background: var(--green); box-shadow: 0 3px 0 #4f9a33; display: flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; flex: none; }
+  .card button[disabled] { background: #c4ccd3; box-shadow: 0 3px 0 #a7b0b8; cursor: default; }
+  .card button .ico, .goodrow .ico { width: 18px; height: 18px; }
+  .goodrow { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #eef2f5; }
+  .goodrow .ic { font-size: 22px; width: 30px; text-align: center; flex: none; }
+  .goodrow .mid { flex: 1; min-width: 0; font-size: 15px; }
+  .goodrow small { color: var(--muted); display: block; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .hint { color: var(--muted); font-size: 13px; line-height: 1.4; margin: 0 0 6px; }
+  textarea { width: 100%; height: 110px; border-radius: 12px; border: 1px solid #d5dde4; padding: 10px; font: 12px ui-monospace, Menlo, monospace; resize: none; -webkit-user-select: text; user-select: text; touch-action: auto; word-break: break-all; }
+  .big-num { font-size: 30px; font-weight: 800; text-align: center; margin: 6px 0 2px; display: flex; justify-content: center; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+  .big-num .ico { width: 30px; height: 30px; }
+  .center { text-align: center; }
 </style>
 </head>
 <body>
@@ -169,7 +199,7 @@
  * 1. CONFIG – alle Spielwerte zentral
  * ===================================================================== */
 const CONFIG = {
-  saveVersion: 1,
+  saveVersion: 2,
   saveKey: 'bodenseeBuilder.save',
   autosaveSeconds: 10,
   tickRate: 10,                 // Simulation in Hz
@@ -188,19 +218,57 @@ const CONFIG = {
   },
 
   start: { coins: 60, pearls: 0 },
+  // Kosten Feld-Freischaltung: base × growth^(freigeschaltet − Startfelder)
   unlock: { base: 15, growth: 1.22 },
-  // Vorläufig nur für Meilenstein 1 (wird in M2 durch echte Wirtschaft ersetzt)
-  m1: { incomePerField: 1.0, debugCoins: 1000 },
+
+  // Ausbaustufen: Kosten upBase × costGrowth^(level−1)
+  levels: {
+    max: 6,
+    costGrowth: 1.9,
+    speed: [1, 1.1, 1.25, 1.4, 1.6, 1.8],    // Tempo-Faktor je Stufe (Zykluszeit ÷ Faktor)
+    yield: [1, 2, 2, 3, 4, 5],               // Einheiten pro Zyklus (Verarbeitung: max. Chargengröße)
+  },
+  // Verarbeitungsbetrieb bauen: build × buildGrowth^(Anzahl gleicher Betriebe)
+  buildGrowth: 1.5,
+  storage: { cap: 100 },                     // Lagerplatz pro Ware
+  // Marktplatz (Altstadt): Gebühren-Einkommen und Verkaufsbonus je Stufe
+  market: { tax: [0.5, 1, 2, 4, 7, 12], bonus: [0, 0.1, 0.2, 0.35, 0.5, 0.75] },
+  offline: { capHours: 2, minSeconds: 30, stepSeconds: 0.5 },
+  transport: { speed: 110, minSeconds: 0.7, maxSeconds: 3, maxDots: 80 },
+  popupEveryMs: 1100,           // Münz-Popups pro Feld höchstens so oft
+  incomeSmoothing: 0.015,       // Glättung der Einkommensanzeige pro Tick
+  debugCoins: 1000,             // nur mit #debug in der URL
 
   fogClearMs: 900,
 
+  goods: {
+    wood:      { name: 'Holz',    icon: '🪵', price: 2,   color: '#a0703f' },
+    planks:    { name: 'Bretter', icon: '🪚', price: 14,  color: '#e0aa62' },
+    furniture: { name: 'Möbel',   icon: '🪑', price: 110, color: '#8a4f2a' },
+    gravel:    { name: 'Kies',    icon: '🪨', price: 3,   color: '#9a948a' },
+    concrete:  { name: 'Beton',   icon: '🧱', price: 38,  color: '#6f7b86' },
+    milk:      { name: 'Milch',   icon: '🥛', price: 4,   color: '#fbfbf4' },
+    butter:    { name: 'Butter',  icon: '🧈', price: 30,  color: '#f2d15c' },
+  },
+  // field = auf welchem Feldtyp; in = Eingang pro Einheit; cycle = Sekunden auf Stufe 1
+  buildings: {
+    market:   { name: 'Marktplatz',  icon: '🏰', field: 'town', upBase: 150 },
+    lumber:   { name: 'Holzfäller',  icon: '🪓', field: 'forest',  out: 'wood',   cycle: 3, upBase: 40 },
+    quarry:   { name: 'Kieswerk',    icon: '⛏️', field: 'gravel',  out: 'gravel', cycle: 4, upBase: 60 },
+    farm:     { name: 'Milchhof',    icon: '🐄', field: 'pasture', out: 'milk',   cycle: 5, upBase: 30 },
+    creamery: { name: 'Molkerei',    icon: '🧈', field: 'plot', in: { milk: 2 },   out: 'butter',    cycle: 12, build: 50,   upBase: 120, wall: '#ffffff', roof: '#3f7fbf' },
+    sawmill:  { name: 'Sägewerk',    icon: '🪚', field: 'plot', in: { wood: 2 },   out: 'planks',    cycle: 8,  build: 80,   upBase: 150, wall: '#e8c99a', roof: '#9c5b34' },
+    concrete: { name: 'Betonwerk',   icon: '🏭', field: 'plot', in: { gravel: 3 }, out: 'concrete',  cycle: 10, build: 300,  upBase: 500, wall: '#d5dade', roof: '#5d6b78' },
+    joinery:  { name: 'Schreinerei', icon: '🪑', field: 'plot', in: { planks: 2 }, out: 'furniture', cycle: 16, build: 1200, upBase: 2500, wall: '#f3e0c4', roof: '#6f4a8e' },
+  },
+
   fieldTypes: {
-    town:    { name: 'Altstadt',      desc: 'Dein Startpunkt mit Türmen und Gassen.', top: '#f1e4c8', side: '#cdb88f', icon: '🏰' },
-    forest:  { name: 'Wald',          desc: 'Rohstoff: Holz',                        top: '#7fc35a', side: '#4f9636', icon: '🌲' },
-    gravel:  { name: 'Kiesgrube',     desc: 'Rohstoff: Kies',                        top: '#d9cdb4', side: '#b0a283', icon: '⛰️' },
-    pasture: { name: 'Weide',         desc: 'Rohstoff: Milch',                       top: '#a6dc6e', side: '#73b043', icon: '🐄' },
-    plot:    { name: 'Bauplatz',      desc: 'Platz für einen Verarbeitungsbetrieb.', top: '#cfe7a8', side: '#98bf6c', icon: '🏗️' },
-    water:   { name: 'See',           desc: 'Wasserfläche',                          top: '#7cc3e6', side: '#4f97bd', icon: '🌊' },
+    town:    { name: 'Altstadt',  desc: 'Dein Startpunkt. Hier ist der Markt.',   top: '#f1e4c8', side: '#cdb88f', icon: '🏰', producer: 'market' },
+    forest:  { name: 'Wald',      desc: 'Rohstoff: Holz',                         top: '#7fc35a', side: '#4f9636', icon: '🌲', producer: 'lumber' },
+    gravel:  { name: 'Kiesgrube', desc: 'Rohstoff: Kies',                         top: '#d9cdb4', side: '#b0a283', icon: '⛰️', producer: 'quarry' },
+    pasture: { name: 'Weide',     desc: 'Rohstoff: Milch',                        top: '#a6dc6e', side: '#73b043', icon: '🐄', producer: 'farm' },
+    plot:    { name: 'Bauplatz',  desc: 'Platz für einen Verarbeitungsbetrieb.',  top: '#cfe7a8', side: '#98bf6c', icon: '🏗️' },
+    water:   { name: 'See',       desc: 'Fischerei und Fähren gibt es ab Region 2 (Nordufer).', top: '#7cc3e6', side: '#4f97bd', icon: '🌊' },
   },
   fog: { top: '#e9eef3', side: '#c3ccd5', puff: '#f7f9fb', edge: '#d6dee6' },
   square: { path: '#e6d3a8', road: '#c9b48a', fog: '#dde4ea', grass: '#b9dd8a' },
@@ -248,6 +316,14 @@ function fmt(n) {
   return (neg ? '−' : '') + out;
 }
 function fmtRate(n) { return n < 10 ? (Math.round(n * 10) / 10).toString().replace('.', ',') : fmt(n); }
+function fmtSec(s) { return (s < 10 ? (Math.round(s * 10) / 10).toString().replace('.', ',') : Math.round(s)) + ' s'; }
+function fmtDuration(s) {
+  s = Math.floor(s);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  if (h) return h + ' h ' + m + ' min';
+  if (m) return m + ' min ' + (s % 60) + ' s';
+  return s + ' s';
+}
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const easeOut = t => 1 - Math.pow(1 - t, 3);
@@ -281,21 +357,30 @@ let state = null;   // serialisierbar
 const world = {     // Laufzeit, aus state + CONFIG abgeleitet
   region: null, octs: [], octMap: new Map(), squares: [], sqMap: new Map(),
   bounds: { minX: 0, minY: 0, maxX: 0, maxY: 0 },
+  town: null,
+  procs: [], prods: [],      // aktive Verarbeitungsbetriebe / Rohstoffbetriebe
+  reserve: {},               // Ware → Menge, die für Betriebe zurückgehalten wird
+  pathCache: new Map(),
+  income: 0,                 // geglättetes Einkommen/s (Anzeige)
 };
-const fx = { fogClear: new Map(), popups: [], pulse: 0 };
+const fx = { fogClear: new Map(), popups: [], dots: [], levelUp: new Map() };
 let selected = null; // { kind:'oct'|'sq', ref }
 
 function newState() {
+  const sell = {};
+  for (const g in CONFIG.goods) sell[g] = true;
   return {
     saveVersion: CONFIG.saveVersion,
     lastSeen: Date.now(),
     regionIndex: 0,
     coins: CONFIG.start.coins,
     pearls: CONFIG.start.pearls,
-    fields: {},
+    fields: {},              // "c,r" → { u: 0|1, b: null | { k, l, p, a } }
+    inventory: {},
+    market: { sell },
     settings: { sound: true, dialect: false },
     camera: null,
-    stats: { unlocks: 0 },
+    stats: { unlocks: 0, earned: 0, produced: {}, regionDone: false },
   };
 }
 
@@ -316,8 +401,9 @@ function buildWorld() {
       const oct = {
         id: k, col, row, type, cx, cy, startField: region.startUnlocked.includes(ch),
         poly: OCT_SHAPE.map(([x, y]) => [cx + x, cy + y]),
-        nOct: [], nSq: [],
+        nOct: [], nSq: [], popCoins: 0, popT: 0,
         get unlocked() { return !!state.fields[k].u; },
+        get b() { return state.fields[k].b || null; },
       };
       world.octs.push(oct); world.octMap.set(k, oct);
     });
@@ -346,7 +432,53 @@ function buildWorld() {
 
   const xs = world.octs.map(o => o.cx), ys = world.octs.map(o => o.cy);
   world.bounds = { minX: Math.min(...xs) - HW, maxX: Math.max(...xs) + HW, minY: Math.min(...ys) - HW, maxY: Math.max(...ys) + HW };
+  world.town = world.octs.find(o => o.type === 'town') || null;
+
+  // Rohstoffbetriebe auf freien Feldern sicherstellen (auch nach Migration)
+  for (const o of world.octs) if (o.unlocked) ensureProducer(o);
+  for (const g in CONFIG.goods) {
+    if (state.market.sell[g] === undefined) state.market.sell[g] = true;
+    if (!(state.inventory[g] >= 0)) state.inventory[g] = 0;
+  }
+  fx.dots = []; fx.popups = []; fx.fogClear.clear(); fx.levelUp.clear();
+  refreshWorld();
 }
+
+function ensureProducer(o) {
+  const p = CONFIG.fieldTypes[o.type].producer;
+  if (p && !state.fields[o.id].b) state.fields[o.id].b = { k: p, l: 1, p: 0 };
+}
+
+// Nach jeder Änderung an Feldern/Gebäuden: Listen, Reserven und Wege neu bestimmen
+function refreshWorld() {
+  world.procs = []; world.prods = [];
+  for (const o of world.octs) {
+    if (!o.unlocked || !o.b) continue;
+    const d = def(o.b);
+    if (!d.out) continue;
+    (d.in ? world.procs : world.prods).push(o);
+  }
+  world.reserve = {};
+  for (const o of world.procs) {
+    const d = def(o.b);
+    for (const g in d.in) world.reserve[g] = (world.reserve[g] || 0) + d.in[g] * batchSize(o.b);
+  }
+  for (const g in world.reserve) world.reserve[g] = Math.min(world.reserve[g], CONFIG.storage.cap);
+  world.pathCache.clear();
+}
+
+/* --- Wirtschafts-Helfer --- */
+const def = b => CONFIG.buildings[b.k];
+const cycleTime = b => def(b).cycle / CONFIG.levels.speed[b.l - 1];
+const batchSize = b => CONFIG.levels.yield[b.l - 1];
+const marketLevel = () => (world.town && world.town.b ? world.town.b.l : 1);
+const marketMult = () => 1 + CONFIG.market.bonus[marketLevel() - 1];
+const taxRate = () => CONFIG.market.tax[marketLevel() - 1];
+const sellPrice = g => CONFIG.goods[g].price * marketMult();
+const upgradeCost = b => Math.ceil(def(b).upBase * Math.pow(CONFIG.levels.costGrowth, b.l - 1));
+const countKind = k => world.octs.filter(o => o.b && o.b.k === k).length;
+const buildCost = k => Math.ceil(CONFIG.buildings[k].build * Math.pow(CONFIG.buildGrowth, countKind(k)));
+const regionProduces = g => world.octs.some(o => o.unlocked && o.b && def(o.b).out === g);
 
 const unlockedCount = () => world.octs.filter(o => o.unlocked).length;
 const startCount = () => world.octs.filter(o => o.startField).length;
@@ -363,8 +495,8 @@ function squareKind(sq) {
   if (un >= 2) return 'road';
   return 'path';
 }
-function incomePerSecond() { return unlockedCount() * CONFIG.m1.incomePerField; }
 
+/* --- Aktionen --- */
 function tryUnlock(o) {
   if (!isUnlockable(o)) return false;
   const cost = unlockCost();
@@ -372,10 +504,45 @@ function tryUnlock(o) {
   state.coins -= cost;
   state.fields[o.id].u = 1;
   state.stats.unlocks++;
+  ensureProducer(o);
+  refreshWorld();
   fx.fogClear.set(o.id, performance.now());
   addPopup(o.cx, o.cy, '−' + fmt(cost), '#c0503f');
   sound.pling(880);
   vibrate(15);
+  save();
+  if (!state.stats.regionDone && world.octs.every(x => x.unlocked)) {
+    state.stats.regionDone = true;
+    setTimeout(showRegionDone, CONFIG.fogClearMs);
+  }
+  return true;
+}
+function tryUpgrade(o) {
+  const b = o.b;
+  if (!b || b.l >= CONFIG.levels.max) return false;
+  const cost = upgradeCost(b);
+  if (state.coins < cost) return false;
+  state.coins -= cost;
+  b.l++;
+  refreshWorld();
+  fx.levelUp.set(o.id, performance.now());
+  addPopup(o.cx, o.cy, 'Stufe ' + b.l + '!', '#2f7fb5');
+  sound.pling(660); setTimeout(() => sound.pling(990), 90);
+  vibrate([20, 40, 20]);
+  save();
+  return true;
+}
+function tryBuild(o, k) {
+  if (!o.unlocked || o.b || o.type !== CONFIG.buildings[k].field) return false;
+  const cost = buildCost(k);
+  if (state.coins < cost) return false;
+  state.coins -= cost;
+  state.fields[o.id].b = { k, l: 1, p: 0, a: 0 };
+  refreshWorld();
+  fx.levelUp.set(o.id, performance.now());
+  addPopup(o.cx, o.cy, '−' + fmt(cost), '#c0503f');
+  sound.pling(740);
+  vibrate(25);
   save();
   return true;
 }
@@ -384,8 +551,120 @@ function tryUnlock(o) {
  * 4. SIMULATION – fester Tick
  * ===================================================================== */
 const DT = 1 / CONFIG.tickRate;
-function simTick(dt) {
-  state.coins += incomePerSecond() * dt;
+
+// Darf eine Ware angenommen werden? Bei aktivem Verkauf immer, sonst nur mit Lagerplatz.
+function canAccept(g, n) { return state.market.sell[g] || (state.inventory[g] || 0) + n <= CONFIG.storage.cap; }
+// Verkauft alles über der Reserve (die Betriebe für ihre nächste Charge brauchen)
+function sellSurplus(g) {
+  if (!state.market.sell[g]) return 0;
+  const n = (state.inventory[g] || 0) - (world.reserve[g] || 0);
+  if (n <= 0) return 0;
+  state.inventory[g] -= n;
+  return n * sellPrice(g);
+}
+function deliver(o, g, n, silent) {
+  state.inventory[g] = (state.inventory[g] || 0) + n;
+  state.stats.produced[g] = (state.stats.produced[g] || 0) + n;
+  const c = sellSurplus(g);
+  if (!silent && c > 0) {
+    o.popCoins += c;
+    const now = performance.now();
+    if (now - o.popT >= CONFIG.popupEveryMs) { addPopup(o.cx, o.cy, '+' + fmt(o.popCoins), '#d39a12'); o.popCoins = 0; o.popT = now; }
+  }
+  return c;
+}
+function tryStart(o, b, d, silent) {
+  let n = batchSize(b);
+  for (const g in d.in) n = Math.min(n, Math.floor((state.inventory[g] || 0) / d.in[g]));
+  if (n < 1) return;
+  for (const g in d.in) state.inventory[g] -= d.in[g] * n;
+  b.a = n; b.p = 0;
+  if (!silent) spawnTransport(o, d);
+}
+
+// Ein Simulationsschritt. silent = ohne Effekte (Offline-Nachberechnung)
+function simTick(dt, silent) {
+  let earned = taxRate() * dt;
+  for (const o of world.procs) {
+    const b = o.b, d = def(b);
+    if (!b.a) tryStart(o, b, d, silent);
+    if (!b.a) continue;
+    b.p += dt / cycleTime(b);
+    if (b.p >= 1) {
+      if (canAccept(d.out, b.a)) {
+        const rest = b.p - 1;
+        earned += deliver(o, d.out, b.a, silent);
+        b.a = 0; b.p = 0;
+        tryStart(o, b, d, silent);
+        if (b.a) b.p = rest;
+      } else b.p = 1; // Lager voll
+    }
+  }
+  for (const o of world.prods) {
+    const b = o.b, d = def(b), n = batchSize(b);
+    b.p += dt / cycleTime(b);
+    while (b.p >= 1) {
+      if (!canAccept(d.out, n)) { b.p = 1; break; }
+      earned += deliver(o, d.out, n, silent);
+      b.p -= 1;
+    }
+  }
+  for (const g in CONFIG.goods) earned += sellSurplus(g); // z. B. nach Umschalten auf "Verkaufen"
+  state.coins += earned;
+  state.stats.earned += earned;
+  return earned;
+}
+
+// Abwesenheit nachrechnen (begrenzt auf offline.capHours)
+function catchUp(seconds) {
+  const cap = CONFIG.offline.capHours * 3600;
+  const sec = clamp(seconds, 0, cap);
+  const coins0 = state.coins, prod0 = { ...state.stats.produced };
+  const step = CONFIG.offline.stepSeconds;
+  let left = sec;
+  while (left > 1e-6) { const d = Math.min(step, left); simTick(d, true); left -= d; }
+  const goods = {};
+  for (const g in state.stats.produced) {
+    const n = state.stats.produced[g] - (prod0[g] || 0);
+    if (n > 0) goods[g] = n;
+  }
+  state.lastSeen = Date.now();
+  return { seconds: sec, away: seconds, capped: seconds > cap, coins: state.coins - coins0, goods };
+}
+
+/* --- Transportpunkte entlang der Quadrat-Wege --- */
+const nodeId = n => (n.col !== undefined ? 'o' : 's') + n.id;
+function findSourcePath(o, g) {
+  const ck = o.id + '|' + g;
+  if (world.pathCache.has(ck)) return world.pathCache.get(ck);
+  const prev = new Map([[nodeId(o), null]]);
+  const q = [o];
+  let found = null;
+  for (let i = 0; i < q.length; i++) {
+    const n = q[i], isOct = n.col !== undefined;
+    if (isOct && n !== o && n.b && def(n.b).out === g) { found = n; break; }
+    const nb = isOct ? n.nSq.filter(s => s && squareKind(s) !== 'fog') : n.nOct.filter(x => x && x.unlocked);
+    for (const m of nb) { const id = nodeId(m); if (!prev.has(id)) { prev.set(id, n); q.push(m); } }
+  }
+  let path = null;
+  if (found) {
+    const pts = [];
+    for (let n = found; n; n = prev.get(nodeId(n))) pts.push([n.cx, n.cy, n.col !== undefined ? 0 : 1]);
+    const cum = [0];
+    for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    path = { pts, cum, len: cum[cum.length - 1] };
+  }
+  world.pathCache.set(ck, path);
+  return path;
+}
+function spawnTransport(o, d) {
+  const C = CONFIG.transport;
+  for (const g in d.in) {
+    if (fx.dots.length >= C.maxDots) return;
+    const path = findSourcePath(o, g);
+    if (!path || path.len <= 0) continue;
+    fx.dots.push({ path, t0: performance.now(), dur: clamp(path.len / C.speed, C.minSeconds, C.maxSeconds) * 1000, color: CONFIG.goods[g].color });
+  }
 }
 
 /* =====================================================================
@@ -394,7 +673,7 @@ function simTick(dt) {
 const canvas = document.getElementById('map');
 const ctx = canvas.getContext('2d');
 let dpr = 1, vw = 0, vh = 0, fitZoom = 1;
-const cam = { x: 0, y: 0, zoom: 1, vx: 0, vy: 0 };
+const cam = { x: 0, y: 0, zoom: 1, vx: 0, vy: 0, focus: null };
 const T = CONFIG.grid.tilt;
 
 function resize() {
@@ -416,7 +695,9 @@ function clampCamera() {
   const b = world.bounds;
   cam.zoom = clamp(cam.zoom, fitZoom * CONFIG.camera.minZoom, fitZoom * CONFIG.camera.maxZoom);
   cam.x = clamp(cam.x, b.minX, b.maxX);
-  cam.y = clamp(cam.y, b.minY * T, b.maxY * T);
+  // bei offenem Bottom-Sheet darf die Karte weiter nach oben geschoben werden
+  const extra = typeof sheet !== 'undefined' && sheet.classList.contains('open') ? vh * 0.4 / cam.zoom : 0;
+  cam.y = clamp(cam.y, b.minY * T, b.maxY * T + extra);
 }
 
 function polyPath(poly, dy = 0) {
@@ -509,6 +790,18 @@ function drawOct(o, now) {
     polyPath(p); ctx.fillStyle = ft.top; ctx.fill();
     ctx.strokeStyle = shade(ft.top, 0.35); ctx.lineWidth = Math.max(1, 1.2 * z); ctx.stroke();
     drawDecor(o, now);
+    if (o.b) drawBuildingOverlay(o, now);
+    const lu = fx.levelUp.get(o.id);
+    if (lu !== undefined) {
+      const t = (now - lu) / 700;
+      if (t >= 1) fx.levelUp.delete(o.id);
+      else {
+        ctx.save(); ctx.globalAlpha = 1 - t;
+        ctx.strokeStyle = '#ffd34d'; ctx.lineWidth = 3 * z;
+        ctx.beginPath(); ctx.ellipse(sx(o.cx), sy(o.cy), HW * z * (0.4 + t * 0.7), HW * z * T * (0.4 + t * 0.7), 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      }
+    }
     if (selected && selected.ref === o) {
       polyPath(p); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3 * z; ctx.stroke();
       polyPath(p); ctx.strokeStyle = 'rgba(47,127,181,.9)'; ctx.lineWidth = 1.5 * z; ctx.stroke();
@@ -561,44 +854,102 @@ function roundRect(x, y, w, h, r) {
   ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
 }
 
-// --- Deko (prozedurale Low-Poly-Formen) ---
+// --- Deko & Gebäude (prozedurale Low-Poly-Formen) ---
 function tree(x, y, s, c1, c2) {
   ctx.fillStyle = '#8a5a33'; ctx.fillRect(x - s * .08, y - s * .3, s * .16, s * .3);
   ctx.fillStyle = c1; ctx.beginPath(); ctx.moveTo(x, y - s * 1.25); ctx.lineTo(x + s * .45, y - s * .25); ctx.lineTo(x - s * .45, y - s * .25); ctx.closePath(); ctx.fill();
   ctx.fillStyle = c2; ctx.beginPath(); ctx.moveTo(x, y - s * 1.25); ctx.lineTo(x + s * .45, y - s * .25); ctx.lineTo(x, y - s * .25); ctx.closePath(); ctx.fill();
 }
+// Haus mit Seitenwand und Satteldach; (x,y) = Mitte der Vorderkante unten
+function house(x, y, w, h, wall, roof) {
+  const d = w * 0.35, rh = w * 0.42;
+  ctx.fillStyle = shade(wall, -0.16);
+  ctx.beginPath(); ctx.moveTo(x + w / 2, y); ctx.lineTo(x + w / 2 + d, y - d * .5); ctx.lineTo(x + w / 2 + d, y - h - d * .5); ctx.lineTo(x + w / 2, y - h); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = wall; ctx.fillRect(x - w / 2, y - h, w, h);
+  ctx.beginPath(); ctx.moveTo(x - w / 2, y - h); ctx.lineTo(x, y - h - rh); ctx.lineTo(x + w / 2, y - h); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = roof;
+  ctx.beginPath(); ctx.moveTo(x - w / 2 - 1, y - h + 1); ctx.lineTo(x, y - h - rh); ctx.lineTo(x + d, y - h - rh - d * .5); ctx.lineTo(x - w / 2 + d - 1, y - h - d * .5 + 1); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = shade(roof, -0.2);
+  ctx.beginPath(); ctx.moveTo(x, y - h - rh); ctx.lineTo(x + w / 2 + 1, y - h + 1); ctx.lineTo(x + w / 2 + d + 1, y - h - d * .5 + 1); ctx.lineTo(x + d, y - h - rh - d * .5); ctx.closePath(); ctx.fill();
+}
+function cow(cx, cy, z) {
+  ctx.fillStyle = '#fff'; roundRect(cx - 9 * z, cy - 5 * z, 18 * z, 10 * z, 4 * z); ctx.fill();
+  ctx.fillStyle = '#3b3b3b'; ctx.beginPath(); ctx.arc(cx - 2 * z, cy - 1 * z, 2.5 * z, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 9 * z, cy - 3 * z, 3.5 * z, 0, 7); ctx.fill();
+  ctx.fillRect(cx - 7 * z, cy + 4 * z, 2 * z, 4 * z); ctx.fillRect(cx + 5 * z, cy + 4 * z, 2 * z, 4 * z);
+}
+function flag(x, y, z, now, color) {
+  const wave = Math.sin(now / 250 + x) * 1.5 * z;
+  ctx.strokeStyle = '#4b3a2a'; ctx.lineWidth = z; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 9 * z); ctx.stroke();
+  ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(x, y - 9 * z); ctx.lineTo(x + 8 * z, y - 7 * z + wave); ctx.lineTo(x, y - 5 * z); ctx.closePath(); ctx.fill();
+}
+function smoke(x, y, z, now) {
+  ctx.fillStyle = 'rgba(240,244,248,.8)';
+  for (let i = 0; i < 3; i++) {
+    const t = ((now / 1400) + i / 3) % 1;
+    ctx.beginPath(); ctx.arc(x + t * 6 * z, y - t * 16 * z, (2 + t * 3.5) * z, 0, 7); ctx.fill();
+  }
+}
+const isRunning = b => !!(b && b.a && b.p < 1);
+
 function drawDecor(o, now) {
   const z = cam.zoom, x0 = sx(o.cx), y0 = sy(o.cy);
   const R = (k) => hashRand(o.col, o.row, k);
+  const L = o.b ? o.b.l : 1;
   switch (o.type) {
     case 'forest': {
-      const pts = [[-.22, -.12], [.15, -.2], [-.05, .05], [.25, .12], [-.28, .2], [.05, .28]];
-      pts.forEach(([dx, dy], i) => tree(x0 + dx * W * z, y0 + dy * W * z * T + 6 * z, (12 + R(i) * 6) * z, '#3f8f3a', '#2f7630'));
+      const pts = [[-.22, -.12], [.15, -.2], [-.05, .05], [.25, .12], [-.28, .2], [.05, .28], [-.02, -.26], [.3, -.04]];
+      const nTrees = Math.min(pts.length, 3 + L);
+      if (L >= 4) { // Holzstapel
+        ctx.fillStyle = '#a0703f'; roundRect(x0 + 6 * z, y0 + 8 * z, 16 * z, 6 * z, 2 * z); ctx.fill();
+        ctx.fillStyle = '#e0b07a'; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(x0 + (9 + i * 5) * z, y0 + 11 * z, 2 * z, 0, 7); ctx.fill(); }
+      }
+      pts.slice(0, nTrees).forEach(([dx, dy], i) => tree(x0 + dx * W * z, y0 + dy * W * z * T + 6 * z, (12 + R(i) * 6) * z, L >= 6 ? '#3a9a45' : '#3f8f3a', '#2f7630'));
+      if (L >= 5) house(x0 - 18 * z, y0 + 14 * z, 11 * z, 7 * z, '#c9935a', '#7a4a2a');
+      if (L >= 6) flag(x0 - 18 * z, y0 + 2 * z, z, now, '#f2b631');
       break;
     }
     case 'gravel': {
-      ctx.fillStyle = '#bfae8a';
-      ctx.beginPath(); ctx.moveTo(x0 - 22 * z, y0 + 8 * z); ctx.lineTo(x0 - 6 * z, y0 - 12 * z); ctx.lineTo(x0 + 6 * z, y0 - 4 * z); ctx.lineTo(x0 + 22 * z, y0 + 8 * z); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#a69472';
-      ctx.beginPath(); ctx.moveTo(x0 - 6 * z, y0 - 12 * z); ctx.lineTo(x0 + 6 * z, y0 - 4 * z); ctx.lineTo(x0 + 22 * z, y0 + 8 * z); ctx.lineTo(x0 + 2 * z, y0 + 8 * z); ctx.closePath(); ctx.fill();
+      const heap = (x, y, s, c1, c2) => {
+        ctx.fillStyle = c1;
+        ctx.beginPath(); ctx.moveTo(x - 22 * s, y + 8 * s); ctx.lineTo(x - 6 * s, y - 12 * s); ctx.lineTo(x + 6 * s, y - 4 * s); ctx.lineTo(x + 22 * s, y + 8 * s); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = c2;
+        ctx.beginPath(); ctx.moveTo(x - 6 * s, y - 12 * s); ctx.lineTo(x + 6 * s, y - 4 * s); ctx.lineTo(x + 22 * s, y + 8 * s); ctx.lineTo(x + 2 * s, y + 8 * s); ctx.closePath(); ctx.fill();
+      };
+      if (L >= 2) heap(x0 + 14 * z, y0 - 6 * z, z * 0.55, '#c9b993', '#ad9b78');
+      heap(x0 - (L >= 3 ? 6 : 0) * z, y0, z * (0.85 + L * 0.05), '#bfae8a', '#a69472');
       ctx.fillStyle = '#8f8a84';
       for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.arc(x0 + (R(i) - .5) * 40 * z, y0 + (8 + R(i + 7) * 10) * z, 2 * z, 0, 7); ctx.fill(); }
+      if (L >= 3) { // Förderband
+        ctx.strokeStyle = '#5d6b78'; ctx.lineWidth = 2.5 * z;
+        ctx.beginPath(); ctx.moveTo(x0 + 6 * z, y0 + 14 * z); ctx.lineTo(x0 + 22 * z, y0 - 4 * z); ctx.stroke();
+      }
+      if (L >= 5) { // Bagger
+        ctx.fillStyle = '#f2b631'; roundRect(x0 - 26 * z, y0 + 6 * z, 12 * z, 7 * z, 2 * z); ctx.fill();
+        ctx.strokeStyle = '#d39a12'; ctx.lineWidth = 2 * z;
+        const sw = Math.sin(now / 600) * 3 * z;
+        ctx.beginPath(); ctx.moveTo(x0 - 16 * z, y0 + 7 * z); ctx.lineTo(x0 - 10 * z + sw, y0 - 2 * z); ctx.lineTo(x0 - 6 * z + sw, y0 + 4 * z); ctx.stroke();
+      }
+      if (L >= 6) flag(x0 + 22 * z, y0 - 6 * z, z, now, '#f2b631');
       break;
     }
     case 'pasture': {
-      // Zaun + Kuh
+      // Zaun + Kühe (mehr Kühe mit höherer Stufe)
       ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 * z;
-      ctx.beginPath(); ctx.moveTo(x0 - 26 * z, y0 + 12 * z); ctx.lineTo(x0 + 26 * z, y0 + 12 * z); ctx.stroke();
-      for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(x0 + i * 13 * z, y0 + 12 * z); ctx.lineTo(x0 + i * 13 * z, y0 + 6 * z); ctx.stroke(); }
-      const bob = Math.sin(now / 900 + o.col) * .6 * z;
-      const cx = x0 + (R(1) - .5) * 14 * z, cy = y0 - 4 * z + bob;
-      ctx.fillStyle = '#fff'; roundRect(cx - 9 * z, cy - 5 * z, 18 * z, 10 * z, 4 * z); ctx.fill();
-      ctx.fillStyle = '#3b3b3b'; ctx.beginPath(); ctx.arc(cx - 2 * z, cy - 1 * z, 2.5 * z, 0, 7); ctx.fill();
-      ctx.beginPath(); ctx.arc(cx + 9 * z, cy - 3 * z, 3.5 * z, 0, 7); ctx.fill();
-      ctx.fillStyle = '#3b3b3b'; ctx.fillRect(cx - 7 * z, cy + 4 * z, 2 * z, 4 * z); ctx.fillRect(cx + 5 * z, cy + 4 * z, 2 * z, 4 * z);
+      ctx.beginPath(); ctx.moveTo(x0 - 26 * z, y0 + 14 * z); ctx.lineTo(x0 + 26 * z, y0 + 14 * z); ctx.stroke();
+      for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(x0 + i * 13 * z, y0 + 14 * z); ctx.lineTo(x0 + i * 13 * z, y0 + 8 * z); ctx.stroke(); }
+      if (L >= 3) house(x0 - 16 * z, y0 - 6 * z, 14 * z, 9 * z, '#c0503f', '#7a3a2a');
+      const spots = [[0, -4], [14, 4], [-14, 6], [16, -10]];
+      const nCows = 1 + Math.floor(L / 2);
+      for (let i = 0; i < nCows; i++) {
+        const bob = Math.sin(now / 900 + o.col + i) * .6 * z;
+        cow(x0 + (spots[i][0] + (R(i) - .5) * 6) * z, y0 + spots[i][1] * z + bob, z * (i ? 0.8 : 1));
+      }
+      if (L >= 6) flag(x0 + 24 * z, y0 + 8 * z, z, now, '#f2b631');
       break;
     }
     case 'plot': {
+      if (o.b) { drawFactory(o, x0, y0, z, now); break; }
       ctx.setLineDash([4 * z, 3 * z]); ctx.strokeStyle = 'rgba(90,120,60,.6)'; ctx.lineWidth = 1.5 * z;
       roundRect(x0 - 20 * z, y0 - 12 * z, 40 * z, 24 * z, 4 * z); ctx.stroke(); ctx.setLineDash([]);
       ctx.fillStyle = '#8a5a33'; ctx.fillRect(x0 - 1 * z, y0 - 14 * z, 2 * z, 14 * z);
@@ -606,22 +957,18 @@ function drawDecor(o, now) {
       break;
     }
     case 'town': {
-      // Altstadt mit Türmen (Ravensburger Flair, generisch)
-      const house = (x, y, w, h, roof) => {
-        ctx.fillStyle = '#fbf3e4'; ctx.fillRect(x - w / 2, y - h, w, h);
-        ctx.fillStyle = roof; ctx.beginPath(); ctx.moveTo(x - w / 2 - z, y - h); ctx.lineTo(x, y - h - w * .6); ctx.lineTo(x + w / 2 + z, y - h); ctx.closePath(); ctx.fill();
+      // Altstadt mit Türmen (generisch); wächst mit der Marktstufe
+      const hs = [[-16, 10, 12, 10, '#d9694a'], [15, 12, 13, 9, '#c85a3f'], [-24, -2, 10, 8, '#c85a3f'], [22, -2, 11, 8, '#d9694a'], [-6, 18, 10, 7, '#b84f38']];
+      hs.slice(0, Math.min(hs.length, 1 + L)).forEach(([dx, dy, w, h, roof]) => house(x0 + dx * z, y0 + dy * z, w * z, h * z, '#fbf3e4', roof));
+      const tower = (tx, th) => {
+        ctx.fillStyle = '#efe2c6'; ctx.fillRect(tx - 5 * z, y0 - th * z, 10 * z, (th + 10) * z);
+        ctx.fillStyle = '#d9cba9'; ctx.fillRect(tx, y0 - th * z, 5 * z, (th + 10) * z);
+        ctx.fillStyle = '#2f5f8a'; ctx.beginPath(); ctx.moveTo(tx - 7 * z, y0 - th * z); ctx.lineTo(tx, y0 - (th + 14) * z); ctx.lineTo(tx + 7 * z, y0 - th * z); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#4b3a2a'; ctx.fillRect(tx - 1.5 * z, y0 - (th - 8) * z, 3 * z, 4 * z);
       };
-      house(x0 - 16 * z, y0 + 10 * z, 12 * z, 10 * z, '#d9694a');
-      house(x0 + 15 * z, y0 + 12 * z, 13 * z, 9 * z, '#c85a3f');
-      // Turm
-      ctx.fillStyle = '#efe2c6'; ctx.fillRect(x0 - 5 * z, y0 - 22 * z, 10 * z, 32 * z);
-      ctx.fillStyle = '#d9cba9'; ctx.fillRect(x0, y0 - 22 * z, 5 * z, 32 * z);
-      ctx.fillStyle = '#2f5f8a'; ctx.beginPath(); ctx.moveTo(x0 - 7 * z, y0 - 22 * z); ctx.lineTo(x0, y0 - 36 * z); ctx.lineTo(x0 + 7 * z, y0 - 22 * z); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#4b3a2a'; ctx.fillRect(x0 - 1.5 * z, y0 - 14 * z, 3 * z, 4 * z);
-      // Fähnchen
-      const wave = Math.sin(now / 250) * 1.5 * z;
-      ctx.strokeStyle = '#4b3a2a'; ctx.lineWidth = z; ctx.beginPath(); ctx.moveTo(x0, y0 - 36 * z); ctx.lineTo(x0, y0 - 44 * z); ctx.stroke();
-      ctx.fillStyle = '#e8573f'; ctx.beginPath(); ctx.moveTo(x0, y0 - 44 * z); ctx.lineTo(x0 + 8 * z, y0 - 42 * z + wave); ctx.lineTo(x0, y0 - 40 * z); ctx.closePath(); ctx.fill();
+      if (L >= 4) tower(x0 + 10 * z, 14);
+      tower(x0, 22);
+      flag(x0, y0 - 36 * z, z, now, L >= 6 ? '#f2b631' : '#e8573f');
       break;
     }
     case 'water': {
@@ -637,6 +984,109 @@ function drawDecor(o, now) {
       ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(bx, by - 13 * z); ctx.lineTo(bx + 6 * z, by - 1 * z); ctx.lineTo(bx, by - 1 * z); ctx.closePath(); ctx.fill();
       break;
     }
+  }
+}
+
+// Verarbeitungsbetriebe: Grundform je Art, wächst sichtbar mit der Stufe
+function drawFactory(o, x0, y0, z, now) {
+  const b = o.b, d = def(b), L = b.l, run = isRunning(b);
+  const s = z * (0.8 + L * 0.06);
+  if (L >= 3) house(x0 - 16 * z, y0 + 2 * z, 14 * s, 9 * s, shade(d.wall, -0.05), shade(d.roof, 0.15)); // Anbau
+  const bx = x0 + 2 * z, by = y0 + 12 * z;
+  switch (b.k) {
+    case 'sawmill': {
+      // Stammstapel + Sägeblatt
+      ctx.fillStyle = '#a0703f'; roundRect(x0 + 12 * z, y0 + 10 * z, 18 * z, 7 * z, 3 * z); ctx.fill();
+      ctx.fillStyle = '#e0b07a'; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(x0 + (15 + i * 6) * z, y0 + 13.5 * z, 2.2 * z, 0, 7); ctx.fill(); }
+      house(bx, by, 24 * s, 14 * s, d.wall, d.roof);
+      const sx0 = bx - 4 * s, sy0 = by - 7 * s, rr = 4.5 * s, rot = run ? now / 120 : 0;
+      ctx.fillStyle = '#c9d2da'; ctx.beginPath();
+      for (let i = 0; i < 16; i++) { const a = rot + i * Math.PI / 8, r = i % 2 ? rr : rr * 0.8; ctx.lineTo(sx0 + Math.cos(a) * r, sy0 + Math.sin(a) * r); }
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#6b7f90'; ctx.beginPath(); ctx.arc(sx0, sy0, 1.3 * s, 0, 7); ctx.fill();
+      break;
+    }
+    case 'joinery': {
+      house(bx, by, 26 * s, 15 * s, d.wall, d.roof);
+      // Schaufenster mit Stuhl
+      ctx.fillStyle = '#bfe3f2'; ctx.fillRect(bx - 9 * s, by - 11 * s, 9 * s, 8 * s);
+      ctx.strokeStyle = '#8a4f2a'; ctx.lineWidth = 1.4 * s;
+      ctx.beginPath(); ctx.moveTo(bx - 6.5 * s, by - 10 * s); ctx.lineTo(bx - 6.5 * s, by - 4 * s); ctx.moveTo(bx - 6.5 * s, by - 6.5 * s); ctx.lineTo(bx - 2.5 * s, by - 6.5 * s); ctx.lineTo(bx - 2.5 * s, by - 4 * s); ctx.stroke();
+      ctx.fillStyle = '#e0aa62'; ctx.fillRect(x0 - 26 * z, y0 + 12 * z, 14 * z, 3 * z); ctx.fillRect(x0 - 25 * z, y0 + 9 * z, 14 * z, 3 * z);
+      break;
+    }
+    case 'concrete': {
+      // Silo + Halle + Mischtrommel
+      const tx = x0 + 18 * z, tw = 9 * s, th = 22 * s;
+      ctx.fillStyle = '#b8c0c7'; ctx.fillRect(tx - tw / 2, y0 + 8 * z - th, tw, th);
+      ctx.fillStyle = '#9aa4ad'; ctx.fillRect(tx, y0 + 8 * z - th, tw / 2, th);
+      ctx.fillStyle = '#d5dade'; ctx.beginPath(); ctx.ellipse(tx, y0 + 8 * z - th, tw / 2, tw / 4, 0, 0, 7); ctx.fill();
+      house(bx - 4 * z, by, 22 * s, 12 * s, d.wall, d.roof);
+      const mx = x0 - 8 * z, my = y0 + 16 * z, a = run ? now / 400 : 0;
+      ctx.fillStyle = '#e8735a'; ctx.beginPath(); ctx.ellipse(mx, my, 6 * z, 4 * z, 0.3, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = z; ctx.beginPath(); ctx.ellipse(mx, my, 6 * z, 4 * z, 0.3, a, a + 1.2); ctx.stroke();
+      break;
+    }
+    case 'creamery': {
+      house(bx, by, 24 * s, 14 * s, d.wall, d.roof);
+      ctx.fillStyle = '#f2d15c'; ctx.fillRect(bx - 7 * s, by - 10 * s, 7 * s, 5 * s);
+      // Milchkannen
+      for (let i = 0; i < 2 + (L >= 4 ? 1 : 0); i++) {
+        const kx = x0 + (16 + i * 6) * z, ky = y0 + 16 * z;
+        ctx.fillStyle = '#dfe6ec'; roundRect(kx - 2.5 * z, ky - 7 * z, 5 * z, 7 * z, 1.5 * z); ctx.fill();
+        ctx.fillStyle = '#aab6c0'; ctx.fillRect(kx - 1.5 * z, ky - 9 * z, 3 * z, 2 * z);
+      }
+      break;
+    }
+  }
+  if (L >= 4) { // Schornstein
+    const cx = bx + 8 * s, cy = by - 20 * s;
+    ctx.fillStyle = '#9c5b44'; ctx.fillRect(cx - 2 * z, cy - 6 * s, 4 * z, 8 * s);
+    if (run) smoke(cx, cy - 7 * s, z, now);
+  }
+  if (L >= 6) flag(bx - 10 * s, by - 18 * s, z, now, '#f2b631');
+}
+
+// Fortschrittsring, Stufen-Punkte und Statushinweis
+function drawBuildingOverlay(o, now) {
+  const z = cam.zoom; if (z < 0.45) return;
+  const b = o.b, d = def(b), x0 = sx(o.cx), y0 = sy(o.cy);
+  // Stufen-Punkte am unteren Rand
+  const py = y0 + 28 * z * T + 4 * z;
+  for (let i = 0; i < CONFIG.levels.max; i++) {
+    ctx.fillStyle = i < b.l ? '#f2b631' : 'rgba(255,255,255,.75)';
+    ctx.beginPath(); ctx.arc(x0 + (i - 2.5) * 6 * z, py, 2.1 * z, 0, 7); ctx.fill();
+  }
+  if (!d.out) return;
+  const rx = x0 + 30 * z, ry = y0 + 6 * z, r = 6 * z;
+  const stalled = b.p >= 1 && !canAccept(d.out, d.in ? b.a : batchSize(b));
+  const waiting = d.in && !b.a;
+  ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.beginPath(); ctx.arc(rx, ry, r + 1.5 * z, 0, 7); ctx.fill();
+  if (waiting || stalled) {
+    ctx.fillStyle = stalled ? '#c0503f' : '#e09a2b';
+    ctx.font = `800 ${9 * z}px -apple-system, system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(stalled ? '■' : '…', rx, ry + 0.5 * z);
+    return;
+  }
+  ctx.strokeStyle = '#e3e9ee'; ctx.lineWidth = 2.4 * z; ctx.beginPath(); ctx.arc(rx, ry, r - z, 0, 7); ctx.stroke();
+  ctx.strokeStyle = d.in ? '#6f4a8e' : '#6cbf4a';
+  ctx.beginPath(); ctx.arc(rx, ry, r - z, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * clamp(b.p, 0, 1)); ctx.stroke();
+}
+
+function drawDots(now) {
+  const z = cam.zoom, off = CONFIG.grid.depth * z * 0.6;
+  fx.dots = fx.dots.filter(d => now - d.t0 < d.dur);
+  for (const d of fx.dots) {
+    const { pts, cum, len } = d.path;
+    const dist = easeOut(clamp((now - d.t0) / d.dur, 0, 1)) * len;
+    let i = 1; while (i < cum.length - 1 && cum[i] < dist) i++;
+    const seg = cum[i] - cum[i - 1] || 1, t = clamp((dist - cum[i - 1]) / seg, 0, 1);
+    const a = pts[i - 1], b = pts[i];
+    const x = sx(lerp(a[0], b[0], t)), y = sy(lerp(a[1], b[1], t)) + lerp(a[2], b[2], t) * off - 3 * z;
+    // kleiner Karren
+    ctx.fillStyle = '#4b3a2a'; roundRect(x - 5 * z, y - 2 * z, 10 * z, 5 * z, 1.5 * z); ctx.fill();
+    ctx.fillStyle = d.color; ctx.beginPath(); ctx.arc(x, y - 2.5 * z, 3.4 * z, 0, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 0.8 * z; ctx.stroke();
   }
 }
 
@@ -661,6 +1111,7 @@ function render(now) {
   for (const sq of world.squares) drawSquare(sq, now);
   // Achtecke zeilenweise (Painter's Algorithm); world.octs ist bereits nach Zeile sortiert
   for (const o of world.octs) drawOct(o, now);
+  drawDots(now);
   drawPopups(now);
 }
 
@@ -676,6 +1127,7 @@ function pinchInfo() {
   return { mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, dist: Math.hypot(a.x - b.x, a.y - b.y) || 1 };
 }
 canvas.addEventListener('pointerdown', e => {
+  cam.focus = null;
   try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* synthetische Events */ }
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   cam.vx = cam.vy = 0;
@@ -752,6 +1204,14 @@ function handleTap(px, py) {
   if (!hit) { closeSheet(); return; }
   selected = hit;
   if (hit.kind === 'oct') openOctSheet(hit.ref); else openSquareSheet(hit.ref);
+  focusAboveSheet(hit.ref);
+}
+// Feld sanft über das Bottom-Sheet schieben, falls es verdeckt wäre
+function focusAboveSheet(ref) {
+  const top = vh - sheetInner.offsetHeight, y = sy(ref.cy);
+  if (y < top - 50 * cam.zoom) return;
+  const want = Math.max(110, top * 0.55);
+  cam.focus = { t0: performance.now(), from: cam.y, to: cam.y + (y - want) / cam.zoom };
 }
 
 /* =====================================================================
@@ -759,15 +1219,16 @@ function handleTap(px, py) {
  * ===================================================================== */
 const $ = id => document.getElementById(id);
 const sheet = $('sheet'), sheetInner = $('sheetInner');
-let sheetRefresh = null;
+let sheetRefresh = null, modalRefresh = null;
 const COIN_SVG = '<svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f2b631"/><circle cx="12" cy="12" r="7" fill="#f7cd5c"/></svg>';
 const T_OK = () => state.settings.dialect ? 'Des goht' : 'OK';
 
 function updateHUD() {
   $('coins').textContent = fmt(state.coins);
   $('pearls').textContent = fmt(state.pearls);
-  $('income').textContent = fmtRate(incomePerSecond());
+  $('income').textContent = fmtRate(Math.max(0, world.income));
   if (sheetRefresh) sheetRefresh();
+  if (modalRefresh) modalRefresh();
 }
 
 function openSheet(html, refresh) {
@@ -778,66 +1239,233 @@ function openSheet(html, refresh) {
 }
 function closeSheet() { sheet.classList.remove('open'); sheetRefresh = null; selected = null; }
 
-function openOctSheet(o) {
-  const ft = CONFIG.fieldTypes[o.type];
-  if (o.unlocked) {
-    openSheet(`
-      <div class="sheet-head"><div class="badge" style="background:${ft.top};font-size:28px">${ft.icon}</div>
-        <div><h2>${ft.name}</h2><p>${ft.desc}</p></div></div>
-      <div class="sheet-body">
-        <div class="stars">${'<span></span>'.repeat(6)}</div>
-        <div class="note">Gebäude, Produktion und Ausbaustufen folgen in Meilenstein 2.<br>Feld ${o.col + 1}/${o.row + 1}</div>
-      </div>
-      <button class="secbtn" id="sheetClose">${T_OK()}</button>`);
-    $('sheetClose').onclick = closeSheet;
-    return;
-  }
-  const can = isUnlockable(o);
-  openSheet(`
-    <div class="sheet-head"><div class="badge" style="background:${CONFIG.fog.top};font-size:28px">☁️</div>
-      <div><h2>Unerforschtes Gebiet</h2><p>${can ? 'Darunter liegt: ' + ft.name : 'Noch zu weit weg'}</p></div></div>
-    <div class="sheet-body"><div class="note">${can ? ft.desc : 'Schalte zuerst ein angrenzendes Feld frei.'}</div></div>
-    ${can ? `<button class="bigbtn" id="unlockBtn">Freischalten ${COIN_SVG}<span id="unlockCost"></span></button><div class="missing" id="unlockMissing"></div>` : `<button class="secbtn" id="sheetClose">${T_OK()}</button>`}
-  `, can ? () => {
-    const cost = unlockCost(), btn = $('unlockBtn');
-    if (!btn) return;
-    $('unlockCost').textContent = fmt(cost);
+const goodPill = (g, n) => `<span class="pill">${CONFIG.goods[g].icon} ${n !== undefined ? n + '× ' : ''}${CONFIG.goods[g].name}</span>`;
+const kv = (k, v) => `<div class="kv"><span>${k}</span><b>${v}</b></div>`;
+const pct = f => Math.round(f * 100);
+const stars = l => `<div class="stars">${Array.from({ length: CONFIG.levels.max }, (_, i) => `<span class="${i < l ? 'on' : ''}"></span>`).join('')}</div>`;
+function sheetHead(icon, bg, title, sub) {
+  return `<div class="sheet-head"><div class="badge" style="background:${bg};font-size:28px">${icon}</div><div><h2>${title}</h2><p>${sub}</p></div></div>`;
+}
+// Kauf-Button mit "Es fehlen noch …"
+function bindBuy(btnId, missId, costFn, buyFn) {
+  $(btnId).onclick = () => { sound.unlock(); buyFn(); };
+  return () => {
+    const btn = $(btnId); if (!btn) return;
+    const cost = costFn();
+    const c = btn.querySelector('.cost'); if (c) c.textContent = fmt(cost);
     btn.disabled = state.coins < cost;
-    $('unlockMissing').textContent = btn.disabled ? 'Es fehlen noch ' + fmt(cost - state.coins) + ' Münzen' : '';
-  } : null);
-  if (can) $('unlockBtn').onclick = () => { if (tryUnlock(o)) { selected = { kind: 'oct', ref: o }; openOctSheet(o); updateHUD(); } };
-  else $('sheetClose').onclick = closeSheet;
+    if (missId) $(missId).textContent = btn.disabled ? 'Es fehlen noch ' + fmt(cost - state.coins) + ' Münzen' : '';
+  };
+}
+
+function openOctSheet(o) {
+  if (!o.unlocked) return openFogSheet(o);
+  if (o.b) return openBuildingSheet(o);
+  if (o.type === 'plot') return openPlotSheet(o);
+  const ft = CONFIG.fieldTypes[o.type];
+  openSheet(sheetHead(ft.icon, ft.top, ft.name, 'Feld ' + (o.col + 1) + '/' + (o.row + 1)) +
+    `<div class="sheet-body"><div class="note">${ft.desc}</div></div><button class="secbtn" id="sheetClose">${T_OK()}</button>`);
+  $('sheetClose').onclick = closeSheet;
+}
+
+function buildingStatus(o) {
+  const b = o.b, d = def(b);
+  if (!d.out) return ['ok', 'Der Markt verkauft deine Waren automatisch.'];
+  if (d.in && !b.a) {
+    const miss = Object.keys(d.in).filter(g => (state.inventory[g] || 0) < d.in[g]).map(g => CONFIG.goods[g].name).join(', ');
+    return ['bad', regionProduces(Object.keys(d.in)[0]) ? 'Wartet auf ' + miss + ' …' : 'Kein Lieferant: ' + miss + ' wird noch nicht abgebaut.'];
+  }
+  if (b.p >= 1 && !canAccept(d.out, d.in ? b.a : batchSize(b))) return ['bad', 'Lager voll – schalte Verkauf für ' + CONFIG.goods[d.out].name + ' ein.'];
+  return ['ok', (d.in ? 'Verarbeitet ' + b.a + '× · ' : 'Produziert · ') + (state.market.sell[d.out] ? 'Überschuss wird verkauft' : 'wird eingelagert')];
+}
+
+function openBuildingSheet(o) {
+  const b = o.b, d = def(b), ft = CONFIG.fieldTypes[o.type], max = b.l >= CONFIG.levels.max;
+  let body = stars(b.l);
+  if (!d.out) {
+    const M = CONFIG.market;
+    body += kv('Marktgebühren', fmtRate(M.tax[b.l - 1]) + ' Münzen/s' + (max ? '' : ` <span class="up">→ ${fmtRate(M.tax[b.l])}</span>`));
+    body += kv('Verkaufsbonus auf alle Waren', '+' + pct(M.bonus[b.l - 1]) + ' %' + (max ? '' : ` <span class="up">→ +${pct(M.bonus[b.l])} %</span>`));
+  } else {
+    const n = batchSize(b), cyc = cycleTime(b), G = CONFIG.goods[d.out];
+    body += '<div class="io">' + (d.in ? Object.keys(d.in).map(g => goodPill(g, d.in[g] * n)).join('') + '<span class="arrow">→</span>' : '') +
+      goodPill(d.out, n) + `<span class="arrow">alle ${fmtSec(cyc)}</span></div>`;
+    const rate = n / cyc;
+    let next = '';
+    if (!max) { const nb = { ...b, l: b.l + 1 }; next = ` <span class="up">→ ${fmtRate(batchSize(nb) / cycleTime(nb))}</span>`; }
+    body += kv(d.in ? 'Kapazität' : 'Produktion', fmtRate(rate) + ' ' + G.name + '/s' + next);
+    body += kv('Wert bei Verkauf', '≈ ' + fmtRate(rate * sellPrice(d.out)) + ' Münzen/s');
+  }
+  body += '<div class="status" id="bStatus"></div>';
+  openSheet(sheetHead(d.icon, ft.top, d.name, ft.name + ' · Stufe ' + b.l + ' von ' + CONFIG.levels.max) +
+    `<div class="sheet-body">${body}</div>` +
+    (max ? `<button class="bigbtn" disabled>Höchststufe erreicht ⭐</button><div class="missing"></div>`
+      : `<button class="bigbtn" id="upBtn">Ausbauen auf Stufe ${b.l + 1} ${COIN_SVG}<span class="cost"></span></button><div class="missing" id="upMissing"></div>`));
+  const refreshBuy = max ? () => {} : bindBuy('upBtn', 'upMissing', () => upgradeCost(b), () => { if (tryUpgrade(o)) { openBuildingSheet(o); updateHUD(); } });
+  const refresh = () => {
+    const [cls, txt] = buildingStatus(o), el = $('bStatus');
+    if (el) { el.className = 'status ' + cls; el.textContent = txt; }
+    refreshBuy();
+  };
+  sheetRefresh = refresh; refresh();
+}
+
+function openPlotSheet(o) {
+  const ft = CONFIG.fieldTypes.plot;
+  const kinds = Object.keys(CONFIG.buildings).filter(k => CONFIG.buildings[k].field === 'plot');
+  const cards = kinds.map(k => {
+    const d = CONFIG.buildings[k], g = Object.keys(d.in)[0];
+    return `<div class="card"><div class="ic">${d.icon}</div><div class="mid"><b>${d.name}</b>
+      <small>${d.in[g]}× ${CONFIG.goods[g].icon} ${CONFIG.goods[g].name} → ${CONFIG.goods[d.out].icon} ${CONFIG.goods[d.out].name} · ${fmtSec(d.cycle)}</small>
+      <small id="hint_${k}"></small></div>
+      <button id="build_${k}">${COIN_SVG}<span class="cost"></span></button></div>`;
+  }).join('');
+  openSheet(sheetHead(ft.icon, ft.top, ft.name, 'Was soll hier entstehen?') + `<div class="cards">${cards}</div>`);
+  const refs = kinds.map(k => {
+    const r = bindBuy('build_' + k, null, () => buildCost(k), () => { if (tryBuild(o, k)) { openBuildingSheet(o); updateHUD(); } });
+    return () => {
+      r();
+      const g = Object.keys(CONFIG.buildings[k].in)[0], h = $('hint_' + k);
+      if (h) { const ok = regionProduces(g); h.className = ok ? '' : 'warn'; h.textContent = ok ? 'Wert: ' + fmtRate(sellPrice(CONFIG.buildings[k].out)) + ' Münzen/Stück' : 'Braucht ' + CONFIG.goods[g].name + ' – noch kein Lieferant'; }
+    };
+  });
+  sheetRefresh = () => refs.forEach(f => f()); sheetRefresh();
+}
+
+function openFogSheet(o) {
+  const ft = CONFIG.fieldTypes[o.type];
+  const can = isUnlockable(o);
+  openSheet(sheetHead('☁️', CONFIG.fog.top, 'Unerforschtes Gebiet', can ? 'Darunter liegt: ' + ft.name : 'Noch zu weit weg') +
+    `<div class="sheet-body"><div class="note">${can ? ft.desc : 'Schalte zuerst ein angrenzendes Feld frei.'}</div></div>
+    ${can ? `<button class="bigbtn" id="unlockBtn">Freischalten ${COIN_SVG}<span class="cost"></span></button><div class="missing" id="unlockMissing"></div>` : `<button class="secbtn" id="sheetClose">${T_OK()}</button>`}`);
+  if (!can) { $('sheetClose').onclick = closeSheet; return; }
+  sheetRefresh = bindBuy('unlockBtn', 'unlockMissing', unlockCost, () => { if (tryUnlock(o)) { selected = { kind: 'oct', ref: o }; openOctSheet(o); updateHUD(); } });
+  sheetRefresh();
 }
 
 function openSquareSheet(sq) {
   const kind = squareKind(sq);
-  const names = { fog: ['Nebelpfad', 'Wird sichtbar, sobald ein angrenzendes Feld frei ist.'], path: ['Feldweg', 'Verbindet Felder. Hier fahren später Karren.'], road: ['Straße', 'Verbindung zwischen freien Feldern. Später auch Bonusfeld möglich.'], buoy: ['Boje', 'Wasserweg für Boote.'] };
+  const names = { fog: ['Nebelpfad', 'Wird sichtbar, sobald ein angrenzendes Feld frei ist.'], path: ['Feldweg', 'Verbindet Felder. Hier fahren die Karren deiner Lieferketten.'], road: ['Straße', 'Verbindung zwischen freien Feldern. Karren bringen hier Rohstoffe zu den Betrieben.'], buoy: ['Boje', 'Wasserweg für Boote.'] };
   const [n, d] = names[kind];
   openSheet(`<div class="sheet-head"><div class="badge" style="background:#eee2c2;font-size:26px">🛤️</div><div><h2>${n}</h2><p>Verbindungsfeld</p></div></div>
     <div class="sheet-body"><div class="note">${d}</div></div><button class="secbtn" id="sheetClose">${T_OK()}</button>`);
   $('sheetClose').onclick = closeSheet;
 }
 
-function openModal(html) { $('modalBox').innerHTML = html; $('modal').classList.add('open'); }
-function closeModal() { $('modal').classList.remove('open'); }
+function openModal(html, refresh) {
+  $('modalBox').innerHTML = html; $('modal').classList.add('open');
+  modalRefresh = refresh || null; if (refresh) refresh();
+}
+function closeModal() { $('modal').classList.remove('open'); modalRefresh = null; }
 $('modal').addEventListener('pointerdown', e => { if (e.target.id === 'modal') closeModal(); });
 
+function openMarket() {
+  const rows = Object.keys(CONFIG.goods).map(g => {
+    const G = CONFIG.goods[g];
+    return `<div class="goodrow"><div class="ic">${G.icon}</div><div class="mid"><b>${G.name}</b><small id="inv_${g}"></small></div>
+      <button class="toggle ${state.market.sell[g] ? 'on' : ''}" id="sell_${g}" aria-label="${G.name} verkaufen"></button></div>`;
+  }).join('');
+  openModal(`<h2>Lager & Markt</h2>
+    <p class="hint">Schalter an: Überschuss wird automatisch verkauft. Was deine Betriebe für die nächste Charge brauchen, bleibt immer im Lager. Schalter aus: alles wird eingelagert (max. ${CONFIG.storage.cap} pro Ware).</p>
+    ${rows}
+    <div class="kv"><span>Verkaufsbonus (Marktplatz)</span><b>+${pct(marketMult() - 1)} %</b></div>
+    <div class="kv"><span>Insgesamt verdient</span><b id="earnedTotal"></b></div>
+    <button class="secbtn" id="closeMarket">${T_OK()}</button>`, () => {
+    for (const g in CONFIG.goods) {
+      const el = $('inv_' + g); if (!el) continue;
+      const res = world.reserve[g] ? ' · Reserve ' + world.reserve[g] : '';
+      el.textContent = `Lager ${fmt(state.inventory[g] || 0)}/${CONFIG.storage.cap}${res} · ${fmtRate(sellPrice(g))} Münzen/Stück`;
+    }
+    const e = $('earnedTotal'); if (e) e.textContent = fmt(state.stats.earned) + ' Münzen';
+  });
+  for (const g in CONFIG.goods) {
+    $('sell_' + g).onclick = e => { state.market.sell[g] = !state.market.sell[g]; e.currentTarget.classList.toggle('on', state.market.sell[g]); save(); };
+  }
+  $('closeMarket').onclick = closeModal;
+}
+
 function openSettings() {
+  const debug = location.hash.includes('debug');
   openModal(`<h2>Einstellungen</h2>
     <div class="row">Ton <button class="toggle ${state.settings.sound ? 'on' : ''}" id="tSound" aria-label="Ton"></button></div>
     <div class="row">Dialekt (Schwäbisch) <button class="toggle ${state.settings.dialect ? 'on' : ''}" id="tDialect" aria-label="Dialekt"></button></div>
-    <button class="secbtn" id="debugCoins">Debug: +${fmt(CONFIG.m1.debugCoins)} Münzen</button>
+    <button class="secbtn" id="exportBtn">Spielstand exportieren</button>
+    <button class="secbtn" id="importBtn">Spielstand importieren</button>
+    ${debug ? `<button class="secbtn" id="debugCoins">Debug: +${fmt(CONFIG.debugCoins)} Münzen</button>` : ''}
     <button class="secbtn danger" id="resetBtn">Spielstand zurücksetzen</button>
     <button class="secbtn" id="closeSettings">${T_OK()}</button>`);
-  $('tSound').onclick = e => { state.settings.sound = !state.settings.sound; e.target.classList.toggle('on', state.settings.sound); save(); };
-  $('tDialect').onclick = e => { state.settings.dialect = !state.settings.dialect; e.target.classList.toggle('on', state.settings.dialect); save(); };
-  $('debugCoins').onclick = () => { state.coins += CONFIG.m1.debugCoins; updateHUD(); toast('+' + fmt(CONFIG.m1.debugCoins) + ' Münzen'); };
-  $('resetBtn').onclick = () => {
-    if (!confirm('Wirklich den gesamten Spielstand löschen?')) return;
-    try { localStorage.removeItem(CONFIG.saveKey); } catch (e) { /* ignorieren */ }
-    state = newState(); buildWorld(); resize(); centerCamera(); closeModal(); closeSheet(); updateHUD(); toast('Neues Spiel gestartet');
-  };
+  $('tSound').onclick = e => { state.settings.sound = !state.settings.sound; e.currentTarget.classList.toggle('on', state.settings.sound); save(); };
+  $('tDialect').onclick = e => { state.settings.dialect = !state.settings.dialect; e.currentTarget.classList.toggle('on', state.settings.dialect); save(); };
+  $('exportBtn').onclick = openExport;
+  $('importBtn').onclick = openImport;
+  if (debug) $('debugCoins').onclick = () => { state.coins += CONFIG.debugCoins; updateHUD(); toast('+' + fmt(CONFIG.debugCoins) + ' Münzen'); };
+  $('resetBtn').onclick = openResetConfirm;
   $('closeSettings').onclick = closeModal;
+}
+
+// Bestätigung im Spiel (confirm() ist in eingebetteten Ansichten oft gesperrt)
+function openResetConfirm() {
+  openModal(`<h2>Spielstand zurücksetzen?</h2>
+    <p class="hint">Alle Felder, Gebäude, Münzen und Waren gehen verloren. Das lässt sich nicht rückgängig machen. Tipp: Exportiere vorher deinen Spielstand.</p>
+    <button class="secbtn danger" id="resetYes">Ja, alles löschen</button>
+    <button class="secbtn" id="resetNo">Abbrechen</button>`);
+  $('resetYes').onclick = () => {
+    try { localStorage.removeItem(CONFIG.saveKey); } catch (e) { /* ignorieren */ }
+    startState(newState()); centerCamera(); save(); closeModal(); toast('Neues Spiel gestartet');
+  };
+  $('resetNo').onclick = openSettings;
+}
+
+function openExport() {
+  save();
+  const code = exportSave();
+  openModal(`<h2>Spielstand exportieren</h2>
+    <p class="hint">Kopiere diesen Text und bewahre ihn auf. Mit „Importieren“ kannst du ihn auf einem anderen Gerät laden.</p>
+    <textarea id="exportText" readonly>${code}</textarea>
+    <button class="secbtn" id="copyBtn">Kopieren</button>
+    <button class="secbtn" id="backBtn">Zurück</button>`);
+  $('copyBtn').onclick = async () => {
+    const ta = $('exportText');
+    try { await navigator.clipboard.writeText(code); toast('Kopiert'); }
+    catch (e) { ta.focus(); ta.select(); try { document.execCommand('copy'); toast('Kopiert'); } catch (e2) { toast('Bitte manuell kopieren'); } }
+  };
+  $('backBtn').onclick = openSettings;
+}
+function openImport() {
+  openModal(`<h2>Spielstand importieren</h2>
+    <p class="hint">Füge einen exportierten Spielstand ein. Dein aktueller Spielstand wird dabei ersetzt.</p>
+    <textarea id="importText" placeholder="Spielstand-Text hier einfügen …"></textarea>
+    <div class="missing" id="importErr"></div>
+    <button class="bigbtn" id="doImport">Laden</button>
+    <button class="secbtn" id="backBtn">Zurück</button>`);
+  $('doImport').onclick = () => {
+    const s = importSave($('importText').value);
+    if (!s) { $('importErr').textContent = 'Das ist kein gültiger Spielstand.'; return; }
+    startState(s);
+    if (state.camera) restoreCamera(); else centerCamera();
+    save(); closeModal(); toast('Spielstand geladen');
+  };
+  $('backBtn').onclick = openSettings;
+}
+
+function showOffline(r) {
+  const goods = Object.keys(r.goods).sort((a, b) => r.goods[b] * CONFIG.goods[b].price - r.goods[a] * CONFIG.goods[a].price)
+    .slice(0, 4).map(g => goodPill(g, fmt(r.goods[g]))).join(' ');
+  openModal(`<h2 class="center">Während du weg warst …</h2>
+    <p class="hint center">… haben deine Betriebe ${fmtDuration(r.seconds)} lang weitergearbeitet.${r.capped ? `<br>(Abwesend: ${fmtDuration(r.away)} – angerechnet werden höchstens ${CONFIG.offline.capHours} h.)` : ''}</p>
+    <div class="big-num">${COIN_SVG}+${fmt(r.coins)}</div>
+    ${goods ? `<div class="io" style="justify-content:center">${goods}</div>` : ''}
+    <button class="bigbtn" id="offlineOk">${state.settings.dialect ? 'Des goht' : 'Einsammeln'}</button>`);
+  $('offlineOk').onclick = () => { closeModal(); sound.pling(990); };
+}
+
+function showRegionDone() {
+  openModal(`<h2 class="center">${world.region.name} ist erkundet! 🎉</h2>
+    <p class="hint center">Alle Felder sind frei. Bald erscheint hier eine Luftschiffhalle, mit der du über den See zur nächsten Region fliegst (Meilenstein 4).</p>
+    <button class="bigbtn" id="doneOk">${T_OK()}</button>`);
+  $('doneOk').onclick = closeModal;
+  sound.pling(660); setTimeout(() => sound.pling(880), 120); setTimeout(() => sound.pling(1320), 240);
+  vibrate([30, 60, 30, 60, 60]);
 }
 
 let toastTimer = 0;
@@ -850,8 +1478,8 @@ document.querySelectorAll('#bottombar button').forEach(b => b.addEventListener('
   sound.unlock();
   const act = b.dataset.act;
   if (act === 'settings') return openSettings();
-  const ms = { upgrades: 3, balloons: 3, market: 2, goals: 3 }[act];
-  toast(`Kommt in Meilenstein ${ms}`);
+  if (act === 'market') return openMarket();
+  toast('Kommt in Meilenstein 3');
 }));
 
 // Prozeduraler Ton (WebAudio)
@@ -873,13 +1501,20 @@ const sound = {
     o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.4);
   },
 };
-function vibrate(ms) { if (navigator.vibrate) try { navigator.vibrate(ms); } catch (e) { /* ignorieren */ } }
+function vibrate(p) { if (navigator.vibrate) try { navigator.vibrate(p); } catch (e) { /* ignorieren */ } }
 
 /* =====================================================================
  * 8. SAVE / LOAD
  * ===================================================================== */
 const MIGRATIONS = {
-  // Beispiel: 1: s => { s.neuesFeld = 0; s.saveVersion = 2; return s; },
+  // v1 (M1: nur freigeschaltete Felder) → v2 (Wirtschaft). Gebäude auf Rohstofffeldern setzt buildWorld().
+  1: s => {
+    s.inventory = {};
+    s.market = { sell: {} };
+    s.stats = Object.assign({ unlocks: 0 }, s.stats, { earned: 0, produced: {}, regionDone: false });
+    s.saveVersion = 2;
+    return s;
+  },
 };
 function migrate(s) {
   while (s.saveVersion < CONFIG.saveVersion) {
@@ -887,6 +1522,17 @@ function migrate(s) {
     if (!m) throw new Error('Keine Migration für Version ' + s.saveVersion);
     s = m(s);
   }
+  return s;
+}
+function normalize(s) {
+  if (!s || typeof s !== 'object' || typeof s.saveVersion !== 'number' || !s.fields || typeof s.fields !== 'object') throw new Error('Ungültiger Spielstand');
+  if (s.saveVersion > CONFIG.saveVersion) throw new Error('Spielstand aus neuerer Version');
+  const base = newState();
+  s = Object.assign(base, migrate(s));
+  s.market = Object.assign({ sell: {} }, s.market);
+  s.stats = Object.assign(newState().stats, s.stats);
+  s.settings = Object.assign(newState().settings, s.settings);
+  if (!isFinite(s.coins)) s.coins = 0;
   return s;
 }
 function save() {
@@ -899,12 +1545,16 @@ function load() {
   try {
     const raw = localStorage.getItem(CONFIG.saveKey);
     if (!raw) return null;
-    const s = migrate(JSON.parse(raw));
-    return Object.assign(newState(), s);
+    return normalize(JSON.parse(raw));
   } catch (e) {
     console.warn('Spielstand konnte nicht geladen werden', e);
     return null;
   }
+}
+function exportSave() { return btoa(unescape(encodeURIComponent(JSON.stringify(state)))); }
+function importSave(text) {
+  try { return normalize(JSON.parse(decodeURIComponent(escape(atob(text.trim().replace(/\s+/g, '')))))); }
+  catch (e) { console.warn('Import fehlgeschlagen', e); return null; }
 }
 
 /* =====================================================================
@@ -915,6 +1565,28 @@ function centerCamera() {
   cam.x = t.cx; cam.y = t.cy * T; cam.zoom = fitZoom * CONFIG.camera.startZoom;
   clampCamera();
 }
+function restoreCamera() {
+  cam.x = state.camera.x; cam.y = state.camera.y; cam.zoom = state.camera.zoom * fitZoom; clampCamera();
+}
+// Neuen/geladenen Spielstand aktivieren
+function startState(s) {
+  state = s;
+  buildWorld();
+  resize();
+  closeSheet();
+  world.income = 0;
+  updateHUD();
+}
+// Abwesenheit seit lastSeen nachholen und ggf. Dialog zeigen
+function resumeFromAway() {
+  const away = (Date.now() - (state.lastSeen || Date.now())) / 1000;
+  if (away < 1) return;
+  const r = catchUp(away);
+  if (r.seconds > 0) world.income = Math.max(world.income, r.coins / r.seconds);
+  updateHUD();
+  if (r.seconds >= CONFIG.offline.minSeconds && r.coins >= 1) showOffline(r);
+  save();
+}
 
 let acc = 0, lastFrame = performance.now(), hudTimer = 0, saveTimer = 0;
 function frame(now) {
@@ -922,9 +1594,19 @@ function frame(now) {
   lastFrame = now;
   acc += dt;
   let ticks = 0;
-  while (acc >= DT && ticks < CONFIG.maxTicksPerFrame) { simTick(DT); acc -= DT; ticks++; }
+  while (acc >= DT && ticks < CONFIG.maxTicksPerFrame) {
+    const e = simTick(DT, false);
+    world.income += (e / DT - world.income) * CONFIG.incomeSmoothing;
+    acc -= DT; ticks++;
+  }
   if (ticks === CONFIG.maxTicksPerFrame) acc = 0;
 
+  if (cam.focus) { // Kamerafahrt
+    const t = Math.min(1, (now - cam.focus.t0) / 300);
+    cam.y = lerp(cam.focus.from, cam.focus.to, easeOut(t));
+    if (t >= 1) cam.focus = null;
+    clampCamera();
+  }
   // Pan-Trägheit
   if (!gesture && (Math.abs(cam.vx) > 0.01 || Math.abs(cam.vy) > 0.01)) {
     cam.x += cam.vx; cam.y += cam.vy;
@@ -940,16 +1622,14 @@ function frame(now) {
 }
 
 function boot() {
-  state = load() || newState();
-  buildWorld();
-  resize();
-  if (state.camera) {
-    cam.x = state.camera.x; cam.y = state.camera.y; cam.zoom = state.camera.zoom * fitZoom; clampCamera();
-  } else centerCamera();
-  updateHUD();
+  const loaded = load();
+  startState(loaded || newState());
+  if (loaded && state.camera) restoreCamera(); else centerCamera();
+  if (loaded) resumeFromAway();
   window.addEventListener('resize', resize);
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) save(); else lastFrame = performance.now();
+    if (document.hidden) save();
+    else { resumeFromAway(); lastFrame = performance.now(); acc = 0; }
   });
   window.addEventListener('pagehide', save);
   $('loaderQuote').textContent = CONFIG.quotes[Math.floor(Math.random() * CONFIG.quotes.length)];
