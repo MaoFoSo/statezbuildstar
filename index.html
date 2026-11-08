@@ -235,7 +235,7 @@
  * 1. CONFIG – alle Spielwerte zentral
  * ===================================================================== */
 const CONFIG = {
-  saveVersion: 4,
+  saveVersion: 5,
   saveKey: 'bodenseeBuilder.save',
   autosaveSeconds: 10,
   tickRate: 10,                 // Simulation in Hz
@@ -291,6 +291,8 @@ const CONFIG = {
   },
   // Luftschiff: Ladetempo (Einheiten/s je Ware) und Dauer der Flug-Animation
   airship: { rate: 8, flightMs: 3800, fadeMs: 900 },
+  // Finale: Dreiländer-Rundfahrt (Endlos-/Prestige-Modus). Jede Rundfahrt: +priceBonus auf alle Verkaufspreise, dauerhaft
+  tour: { priceBonus: 0.25 },
   transport: { speed: 110, minSeconds: 0.7, maxSeconds: 3, maxDots: 80 },
   popupEveryMs: 1100,           // Münz-Popups pro Feld höchstens so oft
   incomeSmoothing: 0.015,       // Glättung der Einkommensanzeige pro Tick
@@ -316,6 +318,29 @@ const CONFIG = {
     brandy:     { name: 'Apfelbrand',  icon: '🥃', price: 260, color: '#c9862f' },
     fish:       { name: 'Felchen',     icon: '🐟', price: 5,   color: '#9fb8c8' },
     smokedfish: { name: 'Räucherfisch', icon: '🍢', price: 38, color: '#b0703a' },
+    // Region 3: Allgäu & Lindau. energy = Energie: lässt sich nicht einlagern, Überschuss geht ins Netz
+    power:      { name: 'Strom',       icon: '⚡', price: 6,   color: '#ffd23f', energy: true },
+    cheese:     { name: 'Bergkäse',    icon: '🧀', price: 130, color: '#f5c542' },
+    shingles:   { name: 'Schindeln',   icon: '🟫', price: 32,  color: '#c08a52' },
+    timber:     { name: 'Holzbau',     icon: '🛖', price: 340, color: '#9c6b3e' },
+    // Region 4: Vorarlberg
+    stone:      { name: 'Stein',          icon: '🏔️', price: 8,   color: '#8d8a86' },
+    ashlar:     { name: 'Werkstein',      icon: '🏛️', price: 75,  color: '#c9c2b4' },
+    wool:       { name: 'Wolle',          icon: '🧶', price: 9,   color: '#f1ece2' },
+    cloth:      { name: 'Stoff',          icon: '🧵', price: 110, color: '#5b7fb8' },
+    parts:      { name: 'Maschinenteile', icon: '⚙️', price: 330, color: '#6b7f90' },
+    // Region 5: Thurgau & St. Gallen
+    concentrate: { name: 'Saftkonzentrat',     icon: '🍹', price: 90,  color: '#e2932f' },
+    lace:        { name: 'Stickerei',          icon: '🪡', price: 600, color: '#f4eef8' },
+    watchparts:  { name: 'Uhrenteile',         icon: '🔩', price: 14,  color: '#b8a36a' },
+    precision:   { name: 'Präzisionsmechanik', icon: '⌚', price: 260, color: '#4b5b68' },
+    // Region 6: Konstanz, Reichenau & Hegau
+    vegetables:  { name: 'Gemüse',       icon: '🥬', price: 10,  color: '#5fb04a' },
+    canned:      { name: 'Konserven',    icon: '🥫', price: 150, color: '#c0503f' },
+    flowers:     { name: 'Blumen',       icon: '🌷', price: 12,  color: '#e86a8a' },
+    perfume:     { name: 'Duftöl',       icon: '🧴', price: 300, color: '#b48ad9' },
+    basalt:      { name: 'Vulkanstein',  icon: '🌋', price: 10,  color: '#5d5a58' },
+    buildmat:    { name: 'Baustoffe',    icon: '🏗️', price: 115, color: '#8d8a86' },
   },
   // field = auf welchem Feldtyp; in = Eingang pro Einheit; cycle = Sekunden auf Stufe 1
   buildings: {
@@ -342,6 +367,31 @@ const CONFIG = {
     brewery:    { name: 'Brauerei',     icon: '🍺', field: 'plot', in: { hops: 3 },   out: 'beer',       cycle: 12, build: 900,  upBase: 1400, wall: '#f0dcb4', roof: '#2f6f4a', accent: '#a0703f' },
     winery:     { name: 'Weinkellerei', icon: '🍷', field: 'plot', in: { grapes: 3 }, out: 'wine',       cycle: 15, build: 2200, upBase: 3200, wall: '#efe4d2', roof: '#7a2f45', accent: '#7b4f9e' },
     distillery: { name: 'Brennerei',    icon: '🥃', field: 'plot', in: { cider: 2 },  out: 'brandy',     cycle: 20, build: 6000, upBase: 9000, wall: '#e6d3b0', roof: '#5d6b78', accent: '#c9862f' },
+    // Region 3
+    alpfarm:    { name: 'Alphof',          icon: '🐮', field: 'alp',   out: 'milk',  cycle: 3, upBase: 220 },
+    hydro:      { name: 'Wasserkraftwerk', icon: '⚡', field: 'river', out: 'power', cycle: 3, upBase: 300 },
+    shingler:   { name: 'Schindelmacher',  icon: '🪓', field: 'plot', in: { wood: 3 },              out: 'shingles', cycle: 8,  build: 500,  upBase: 800,  wall: '#efd9b4', roof: '#8a5a33', accent: '#c08a52' },
+    cheesery:   { name: 'Käserei',         icon: '🧀', field: 'plot', in: { milk: 3, power: 1 },    out: 'cheese',   cycle: 14, build: 1500, upBase: 2400, wall: '#ffffff', roof: '#3f7f5f', accent: '#f5c542' },
+    carpentry:  { name: 'Zimmerei',        icon: '🛖', field: 'plot', in: { shingles: 2, power: 1 }, out: 'timber',  cycle: 18, build: 6000, upBase: 9000, wall: '#e8c99a', roof: '#6b4a2a', accent: '#9c6b3e' },
+    // Region 4
+    breaker:    { name: 'Steinbrecher',    icon: '⛏️', field: 'rock',  out: 'stone', cycle: 4, upBase: 500 },
+    shepherd:   { name: 'Schäferei',       icon: '🐑', field: 'sheep', out: 'wool',  cycle: 4, upBase: 450 },
+    mason:      { name: 'Steinmetz',       icon: '🏛️', field: 'plot', in: { stone: 3 },             out: 'ashlar', cycle: 10, build: 1200,  upBase: 2000,  wall: '#e4ded2', roof: '#7d756a', accent: '#c9c2b4' },
+    weaver:     { name: 'Weberei',         icon: '🧵', field: 'plot', in: { wool: 3, power: 1 },    out: 'cloth',  cycle: 12, build: 3000,  upBase: 4500,  wall: '#f3ead8', roof: '#3f5f9a', accent: '#5b7fb8' },
+    // Region 5
+    plantation: { name: 'Großplantage',    icon: '🍏', field: 'bigorchard', out: 'apples',     cycle: 2, upBase: 600 },
+    clockshop:  { name: 'Uhrmacher',       icon: '🔩', field: 'workshop',   out: 'watchparts', cycle: 5, upBase: 900 },
+    juicery:    { name: 'Saftkelterei',    icon: '🍹', field: 'plot', in: { apples: 6 },                 out: 'concentrate', cycle: 9,  build: 2500,  upBase: 4000,  wall: '#f7ead0', roof: '#c0503f', accent: '#e2932f' },
+    embroidery: { name: 'Stickerei',       icon: '🪡', field: 'plot', in: { cloth: 2 },                  out: 'lace',        cycle: 20, build: 15000, upBase: 20000, wall: '#fbf6ee', roof: '#8a6fd1', accent: '#d9c8f0' },
+    finemech:   { name: 'Feinmechanik',    icon: '⌚', field: 'plot', in: { watchparts: 3, power: 1 },   out: 'precision',   cycle: 14, build: 8000,  upBase: 12000, wall: '#eef1f4', roof: '#2f5f8a', accent: '#b8a36a' },
+    // Region 6
+    gardener:   { name: 'Gemüsegärtnerei', icon: '🥬', field: 'veggies',  out: 'vegetables', cycle: 3, upBase: 1500 },
+    florist:    { name: 'Blumengärtnerei', icon: '🌷', field: 'flowers',  out: 'flowers',    cycle: 3, upBase: 1800 },
+    lavapit:    { name: 'Vulkansteinbruch', icon: '⛏️', field: 'volcano', out: 'basalt',     cycle: 4, upBase: 2000 },
+    cannery:    { name: 'Konservenfabrik', icon: '🥫', field: 'plot', in: { vegetables: 4 }, out: 'canned',   cycle: 10, build: 6000,  upBase: 9000,  wall: '#eef1f4', roof: '#c0503f', accent: '#c0503f' },
+    perfumery:  { name: 'Duftöl-Destille', icon: '🧴', field: 'plot', in: { flowers: 5 },    out: 'perfume',  cycle: 16, build: 15000, upBase: 22000, wall: '#f8f0f6', roof: '#8a6fd1', accent: '#b48ad9' },
+    buildworks: { name: 'Baustoffwerk',    icon: '🏗️', field: 'plot', in: { basalt: 3 },     out: 'buildmat', cycle: 9,  build: 4000,  upBase: 6000,  wall: '#d5dade', roof: '#5d5a58', accent: '#8d8a86', smoky: true },
+    machinery:  { name: 'Maschinenbau',    icon: '⚙️', field: 'plot', in: { ashlar: 1, power: 3 },  out: 'parts',  cycle: 16, build: 12000, upBase: 16000, wall: '#d5dade', roof: '#4b5b68', accent: '#6b7f90', smoky: true },
   },
 
   fieldTypes: {
@@ -357,6 +407,16 @@ const CONFIG = {
     vineyard:   { name: 'Weinberg',     desc: 'Rohstoff: Trauben', top: '#c4d98a', side: '#93a95a', icon: '🍇', producer: 'vintner' },
     orchard:    { name: 'Obstgarten',   desc: 'Rohstoff: Äpfel',   top: '#93cf6a', side: '#64a03e', icon: '🍎', producer: 'applefarm' },
     fishground: { name: 'Fischgrund',   desc: 'Rohstoff: Felchen. Boote bringen den Fang über die Bojen an Land.', top: '#6fb9df', side: '#4a8fb6', icon: '🐟', producer: 'fishery', water: true },
+    // Region 3
+    alp:        { name: 'Alpweide',     desc: 'Rohstoff: Milch von Allgäuer Kühen',            top: '#b4e07a', side: '#7fb34c', icon: '🐮', producer: 'alpfarm' },
+    rock:       { name: 'Steinbruch',   desc: 'Rohstoff: Stein aus dem Berg',   top: '#cfc9bd', side: '#a39c8e', icon: '🏔️', producer: 'breaker' },
+    sheep:      { name: 'Schafweide',   desc: 'Rohstoff: Wolle',                top: '#bfe28c', side: '#8bb65a', icon: '🐑', producer: 'shepherd' },
+    bigorchard: { name: 'Großplantage', desc: 'Rohstoff: Äpfel – in langen Reihen, schneller als jeder Obstgarten', top: '#9fd472', side: '#6ea646', icon: '🍏', producer: 'plantation' },
+    workshop:   { name: 'Uhrmacherdorf', desc: 'Rohstoff: Uhrenteile aus kleinen Werkstätten', top: '#e3dccb', side: '#b9ae96', icon: '🔩', producer: 'clockshop' },
+    veggies:    { name: 'Gemüseinsel',  desc: 'Rohstoff: Gemüse aus den Beeten der Insel',  top: '#a8d878', side: '#78a94c', icon: '🥬', producer: 'gardener' },
+    flowers:    { name: 'Blumeninsel',  desc: 'Rohstoff: Blumen aus Parks und Gewächshäusern', top: '#b9e08e', side: '#86b25e', icon: '🌷', producer: 'florist' },
+    volcano:    { name: 'Vulkankegel',  desc: 'Rohstoff: Vulkanstein vom erloschenen Kegelberg', top: '#c2c9a0', side: '#939a72', icon: '🌋', producer: 'lavapit' },
+    river:      { name: 'Gebirgsbach',  desc: 'Energie: Wasserkraft liefert Strom. Strom lässt sich nicht einlagern – was keiner braucht, geht ins Netz.', top: '#a9d98a', side: '#76a95a', icon: '⚡', producer: 'hydro' },
   },
   fog: { top: '#e9eef3', side: '#c3ccd5', puff: '#f7f9fb', edge: '#d6dee6' },
   square: { path: '#e6d3a8', road: '#c9b48a', fog: '#dde4ea', grass: '#b9dd8a' },
@@ -451,11 +511,188 @@ const CONFIG = {
       ],
       airship: { need: { brandy: 12, wine: 25, beer: 40 }, pearls: 25 },
     },
+    {
+      id: 'allgaeu',
+      name: 'Allgäu & Lindau',
+      intro: 'Grüne Alpweiden, Bergwälder und die Inselstadt mit Leuchtturm und Löwe am Hafen. Neu ist die <b>Energie</b>: Wasserkraftwerke an den Gebirgsbächen liefern Strom. Strom lässt sich nicht einlagern – Käserei und Zimmerei brauchen ihn direkt, der Rest geht ins Netz.',
+      bg: ['#b3dcf0', '#e4f2d6'],
+      landmark: 'lighthouse',
+      mountains: { hts: [0, 80, 55, 125, 90, 150, 110, 165, 120, 140, 95, 130, 70, 0], color: '#bcd2e3' },
+      // Legende: T=Inselstadt  J=Alpweide  W=Bergwald  E=Gebirgsbach (Strom)  B=Bauplatz  ~=See (Fähre)  L=Luftschiffplatz
+      map: [
+        '..JJWWJ..',
+        '.WJBJWWJ.',
+        '.EBJBEWJ.',
+        'LJBWJBJE.',
+        '.EBJTBWE.',
+        '.~WB~BJ~.',
+        '..~~~~~..',
+      ],
+      startUnlocked: ['T'],
+      startCoins: 400,
+      unlock: { base: 120, growth: 1.22 },
+      market: { cost: 8, tax: 8 },
+      buildings: ['shingler', 'cheesery', 'carpentry', 'balloon', 'ferry'],
+      chains: [['milk', 'cheese'], ['wood', 'shingles', 'timber'], ['power']],
+      balloon: [{ milk: 30, wood: 30 }, { shingles: 12, power: 15 }, { cheese: 6, milk: 30 }, { power: 25, shingles: 15 }, { timber: 3, cheese: 8 }],
+      goals: [
+        { t: 'unlock', n: 1, text: 'Schalte ein Feld frei', tip: 'Die Alpweide neben der Inselstadt liefert Milch.', coins: 200, pearls: 1 },
+        { t: 'build', k: 'shingler', n: 1, text: 'Baue einen Schindelmacher', tip: 'Aus Bergholz werden Schindeln für die Dächer.', pearls: 2 },
+        { t: 'build', k: 'hydro', n: 1, text: 'Nimm ein Wasserkraftwerk in Betrieb', tip: 'Schalte einen Gebirgsbach frei. Strom ist die neue Energie-Ressource.', pearls: 2 },
+        { t: 'build', k: 'cheesery', n: 1, text: 'Baue eine Käserei', tip: 'Die Käserei braucht Milch und Strom.', pearls: 3 },
+        { t: 'unlock', n: 8, text: 'Schalte 8 Felder frei', pearls: 2 },
+        { t: 'build', k: 'balloon', n: 1, text: 'Baue eine Ballonstation', pearls: 2 },
+        { t: 'produce', g: 'cheese', n: 20, text: 'Käse 20 Laibe Bergkäse', pearls: 3 },
+        { t: 'level', k: 'hydro', lvl: 3, n: 2, text: 'Baue 2 Wasserkraftwerke auf Stufe 3', tip: 'Mehr Strom: Engpässe zeigt dir Lager → Lieferketten.', pearls: 3 },
+        { t: 'level', k: 'market', lvl: 3, n: 1, text: 'Baue den Marktplatz auf Stufe 3', pearls: 3 },
+        { t: 'build', k: 'ferry', n: 1, text: 'Baue eine Fährstation am Inselhafen', pearls: 3 },
+        { t: 'launch', n: 3, text: 'Starte 3 Heißluftballons', pearls: 4 },
+        { t: 'build', k: 'carpentry', n: 1, text: 'Baue eine Zimmerei', tip: 'Holzbau ist die wertvollste Ware im Allgäu.', pearls: 4 },
+        { t: 'earn', n: 1000000, text: 'Verdiene 1 Mio. Münzen', pearls: 5 },
+        { t: 'unlock', n: 30, text: 'Schalte 30 Felder frei', pearls: 5 },
+        { t: 'produce', g: 'timber', n: 15, text: 'Stelle 15 Holzbauten her', pearls: 6 },
+        { t: 'all', text: 'Erkunde das ganze Allgäu', tip: 'Dann erscheint die Luftschiffhalle.', pearls: 6 },
+      ],
+      airship: { need: { timber: 12, cheese: 30, power: 40 }, pearls: 35 },
+    },
+    {
+      id: 'vorarlberg',
+      name: 'Vorarlberg',
+      intro: 'Die Festspielstadt mit ihrer Bühne im See, der Hausberg mit Seilbahn und das weite Rheindelta. Steinbrüche liefern Stein für Werkstein, Schafweiden Wolle für die Webereien. Strom aus dem Gebirge treibt Webstühle und den Maschinenbau an.',
+      bg: ['#b6d8ee', '#e6efda'],
+      landmark: 'stage',
+      mountains: { hts: [0, 150, 120, 95, 60, 110, 75, 130, 90, 120, 70, 115, 55, 0], color: '#b8cfdf' },
+      // Legende: T=Festspielstadt  S=Steinbruch  O=Schafweide  E=Gebirgsbach (Strom)  B=Bauplatz  ~=See/Rheindelta (Fähre)  L=Luftschiffplatz
+      map: [
+        '..SSOO...',
+        '.SSBOOE..',
+        '.SBSBOEO.',
+        '.EBOTBBO.',
+        'LSBBSBEO.',
+        '.OEBOBO~.',
+        '..~~~~~~.',
+      ],
+      startUnlocked: ['T'],
+      startCoins: 1000,
+      unlock: { base: 260, growth: 1.22 },
+      market: { cost: 20, tax: 20 },
+      buildings: ['mason', 'weaver', 'machinery', 'balloon', 'ferry'],
+      chains: [['stone', 'ashlar', 'parts'], ['wool', 'cloth'], ['power']],
+      balloon: [{ stone: 30, wool: 25 }, { ashlar: 10, power: 20 }, { cloth: 6, stone: 40 }, { ashlar: 15, wool: 35 }, { parts: 3, cloth: 8 }],
+      goals: [
+        { t: 'unlock', n: 1, text: 'Schalte ein Feld frei', tip: 'Steinbruch und Schafweide liegen direkt an der Festspielstadt.', coins: 500, pearls: 1 },
+        { t: 'build', k: 'mason', n: 1, text: 'Baue einen Steinmetz', tip: 'Aus Stein wird Werkstein.', pearls: 2 },
+        { t: 'build', k: 'hydro', n: 1, text: 'Nimm ein Wasserkraftwerk in Betrieb', tip: 'Die Weberei braucht Strom.', pearls: 2 },
+        { t: 'build', k: 'weaver', n: 1, text: 'Baue eine Weberei', tip: 'Wolle und Strom werden zu Stoff.', pearls: 3 },
+        { t: 'unlock', n: 8, text: 'Schalte 8 Felder frei', pearls: 2 },
+        { t: 'build', k: 'balloon', n: 1, text: 'Baue eine Ballonstation', pearls: 2 },
+        { t: 'level', k: 'market', lvl: 3, n: 1, text: 'Baue den Marktplatz auf Stufe 3', pearls: 3 },
+        { t: 'produce', g: 'cloth', n: 25, text: 'Webe 25 Ballen Stoff', pearls: 3 },
+        { t: 'build', k: 'ferry', n: 1, text: 'Baue eine Fährstation im Rheindelta', pearls: 3 },
+        { t: 'launch', n: 3, text: 'Starte 3 Heißluftballons', pearls: 4 },
+        { t: 'build', k: 'machinery', n: 1, text: 'Baue einen Maschinenbau', tip: 'Werkstein und viel Strom ergeben Maschinenteile.', pearls: 4 },
+        { t: 'level', k: 'hydro', lvl: 4, n: 2, text: 'Baue 2 Wasserkraftwerke auf Stufe 4', pearls: 4 },
+        { t: 'earn', n: 5000000, text: 'Verdiene 5 Mio. Münzen', pearls: 5 },
+        { t: 'unlock', n: 30, text: 'Schalte 30 Felder frei', pearls: 5 },
+        { t: 'produce', g: 'parts', n: 15, text: 'Fertige 15 Maschinenteile', pearls: 6 },
+        { t: 'all', text: 'Erkunde ganz Vorarlberg', tip: 'Dann erscheint die Luftschiffhalle.', pearls: 6 },
+      ],
+      airship: { need: { parts: 12, cloth: 30, ashlar: 40 }, pearls: 45 },
+    },
+    {
+      id: 'thurgau',
+      name: 'Thurgau & St. Gallen',
+      intro: 'Hafenstädte am Südufer, endlose Obstgärten und am Horizont der mächtige Gipfel. Großplantagen liefern Äpfel für Saftkonzentrat, Webereien Stoff für feine Stickerei. In den Uhrmacherdörfern entstehen Uhrenteile – mit Strom wird daraus Präzisionsmechanik.',
+      bg: ['#b8dcf2', '#e8f1d8'],
+      landmark: 'harbor',
+      mountains: { hts: [0, 50, 35, 70, 60, 110, 175, 120, 70, 85, 50, 75, 35, 0], color: '#b9cfe0' },
+      // Legende: T=Hafenstadt  Q=Großplantage  O=Schafweide  U=Uhrmacherdorf  E=Gebirgsbach (Strom)  B=Bauplatz  ~=See (Fähre)  L=Luftschiffplatz
+      map: [
+        '..QQQOO..',
+        '..QQBOOE.',
+        '.UBQBOBE.',
+        '.UUBTBOO.',
+        'LBUBQBEO.',
+        '.QBUQB~~.',
+        '..~~~~~~.',
+      ],
+      startUnlocked: ['T'],
+      startCoins: 2500,
+      unlock: { base: 380, growth: 1.22 },
+      market: { cost: 50, tax: 50 },
+      buildings: ['juicery', 'weaver', 'embroidery', 'finemech', 'balloon', 'ferry'],
+      chains: [['apples', 'concentrate'], ['wool', 'cloth', 'lace'], ['watchparts', 'precision'], ['power']],
+      balloon: [{ apples: 40, wool: 30 }, { concentrate: 10, watchparts: 30 }, { cloth: 8, power: 25 }, { precision: 4, concentrate: 15 }, { lace: 2, cloth: 10 }],
+      goals: [
+        { t: 'unlock', n: 1, text: 'Schalte ein Feld frei', tip: 'Die Großplantage neben der Hafenstadt liefert Äpfel.', coins: 1200, pearls: 1 },
+        { t: 'build', k: 'juicery', n: 1, text: 'Baue eine Saftkelterei', tip: 'Viele Äpfel werden zu wertvollem Saftkonzentrat.', pearls: 2 },
+        { t: 'build', k: 'clockshop', n: 1, text: 'Erschließe ein Uhrmacherdorf', pearls: 2 },
+        { t: 'build', k: 'hydro', n: 1, text: 'Nimm ein Wasserkraftwerk in Betrieb', tip: 'Die Feinmechanik braucht Strom.', pearls: 2 },
+        { t: 'build', k: 'finemech', n: 1, text: 'Baue eine Feinmechanik', pearls: 3 },
+        { t: 'unlock', n: 8, text: 'Schalte 8 Felder frei', pearls: 2 },
+        { t: 'build', k: 'balloon', n: 1, text: 'Baue eine Ballonstation', pearls: 2 },
+        { t: 'build', k: 'weaver', n: 1, text: 'Baue eine Weberei', tip: 'Wolle und Strom werden zu Stoff – die Grundlage für Stickerei.', pearls: 3 },
+        { t: 'level', k: 'market', lvl: 3, n: 1, text: 'Baue den Marktplatz auf Stufe 3', pearls: 3 },
+        { t: 'build', k: 'ferry', n: 1, text: 'Baue eine Fährstation', pearls: 3 },
+        { t: 'launch', n: 3, text: 'Starte 3 Heißluftballons', pearls: 4 },
+        { t: 'build', k: 'embroidery', n: 1, text: 'Baue eine Stickerei', tip: 'Feine Stickerei ist die wertvollste Ware am Südufer.', pearls: 4 },
+        { t: 'level', k: 'plantation', lvl: 4, n: 3, text: 'Baue 3 Großplantagen auf Stufe 4', pearls: 4 },
+        { t: 'earn', n: 20000000, text: 'Verdiene 20 Mio. Münzen', pearls: 5 },
+        { t: 'unlock', n: 30, text: 'Schalte 30 Felder frei', pearls: 5 },
+        { t: 'produce', g: 'lace', n: 12, text: 'Sticke 12 Spitzendecken', pearls: 6 },
+        { t: 'all', text: 'Erkunde Thurgau & St. Gallen', tip: 'Dann erscheint die Luftschiffhalle.', pearls: 6 },
+      ],
+      airship: { need: { lace: 10, precision: 20, concentrate: 40 }, pearls: 55 },
+    },
+    {
+      id: 'konstanz',
+      name: 'Konstanz, Reichenau & Hegau',
+      intro: 'Die Konzilstadt mit Münsterturm und Hafen, die Gemüseinsel, die Blumeninsel und im Westen die erloschenen Vulkankegel. Hier wartet das Finale: Belade das <b>große Luftschiff</b> für die Dreiländer-Rundfahrt um den ganzen See.',
+      bg: ['#b5daf0', '#e9f0dc'],
+      landmark: 'minster',
+      mountains: { hts: [0, 45, 95, 35, 105, 40, 70, 125, 50, 85, 35, 60, 25, 0], color: '#bfd0dc' },
+      // Legende: T=Konzilstadt  G=Gemüseinsel  Y=Blumeninsel  V=Vulkankegel  B=Bauplatz  ~=See (Fähre)  L=Luftschiffplatz
+      map: [
+        '.VV.YY...',
+        'VVBBYYB..',
+        'VBVBTB~G.',
+        'BVB~~GGG.',
+        'LBBY~GBG.',
+        '..YY~GGB.',
+        '...~~~~..',
+      ],
+      startUnlocked: ['T'],
+      startCoins: 5000,
+      unlock: { base: 600, growth: 1.22 },
+      market: { cost: 120, tax: 120 },
+      buildings: ['cannery', 'perfumery', 'buildworks', 'balloon', 'ferry'],
+      chains: [['vegetables', 'canned'], ['flowers', 'perfume'], ['basalt', 'buildmat']],
+      balloon: [{ vegetables: 40, flowers: 30 }, { canned: 10, basalt: 40 }, { buildmat: 12, flowers: 40 }, { perfume: 4, canned: 12 }, { buildmat: 20, perfume: 6 }],
+      goals: [
+        { t: 'unlock', n: 1, text: 'Schalte ein Feld frei', tip: 'Die Blumeninsel liegt direkt an der Konzilstadt.', coins: 2500, pearls: 1 },
+        { t: 'build', k: 'buildworks', n: 1, text: 'Baue ein Baustoffwerk', tip: 'Aus Vulkanstein werden Baustoffe.', pearls: 2 },
+        { t: 'build', k: 'cannery', n: 1, text: 'Baue eine Konservenfabrik', tip: 'Gemüse von der Insel kommt per Boot.', pearls: 2 },
+        { t: 'unlock', n: 8, text: 'Schalte 8 Felder frei', pearls: 2 },
+        { t: 'build', k: 'balloon', n: 1, text: 'Baue eine Ballonstation', pearls: 2 },
+        { t: 'build', k: 'perfumery', n: 1, text: 'Baue eine Duftöl-Destille', tip: 'Duftöl ist die wertvollste Ware am Untersee.', pearls: 3 },
+        { t: 'level', k: 'market', lvl: 3, n: 1, text: 'Baue den Marktplatz auf Stufe 3', pearls: 3 },
+        { t: 'build', k: 'ferry', n: 2, text: 'Baue 2 Fährstationen', pearls: 3 },
+        { t: 'launch', n: 3, text: 'Starte 3 Heißluftballons', pearls: 4 },
+        { t: 'level', k: 'gardener', lvl: 4, n: 3, text: 'Baue 3 Gemüsegärtnereien auf Stufe 4', pearls: 4 },
+        { t: 'produce', g: 'perfume', n: 20, text: 'Destilliere 20 Flaschen Duftöl', pearls: 4 },
+        { t: 'earn', n: 50000000, text: 'Verdiene 50 Mio. Münzen', pearls: 5 },
+        { t: 'unlock', n: 30, text: 'Schalte 30 Felder frei', pearls: 5 },
+        { t: 'launch', n: 6, text: 'Starte 6 Heißluftballons', pearls: 6 },
+        { t: 'all', text: 'Erkunde Konstanz, Reichenau & Hegau', tip: 'Dann erscheint die Halle für das große Luftschiff.', pearls: 8 },
+      ],
+      // finale: großes Luftschiff, danach Dreiländer-Rundfahrt zurück nach Oberschwaben (Endlos-/Prestige-Modus)
+      airship: { need: { perfume: 20, canned: 40, buildmat: 60 }, pearls: 80, finale: true },
+    },
   ],
 
   quotes: ['Schaffe, schaffe, Häusle baue …', 'Felder werden vermessen …', 'Der Nebel zieht übers Schwäbische Meer …'],
 };
-const TYPE_BY_CHAR = { T: 'town', W: 'forest', K: 'gravel', M: 'pasture', B: 'plot', '~': 'water', L: 'hangar', P: 'hopgarden', R: 'vineyard', A: 'orchard', F: 'fishground' };
+const TYPE_BY_CHAR = { T: 'town', W: 'forest', K: 'gravel', M: 'pasture', B: 'plot', '~': 'water', L: 'hangar', P: 'hopgarden', R: 'vineyard', A: 'orchard', F: 'fishground', J: 'alp', E: 'river', S: 'rock', O: 'sheep', Q: 'bigorchard', U: 'workshop', G: 'veggies', Y: 'flowers', V: 'volcano' };
 
 /* =====================================================================
  * 2. UTILS – Format, Mathe, Geometrie
@@ -551,8 +788,9 @@ function newState(regionIndex = 0, keep = null) {
     balloon: { fill: {}, launches: 0, load: true, t: 0 },
     airship: { fill: {}, load: true, t: 0 },                              // ab M4, pro Region
     lifetime: { earned: 0, pearls: 0, launches: 0, regions: 0 },          // bleibt
+    tour: 0,                 // ab M5: abgeschlossene Dreiländer-Rundfahrten (bleibt)
   };
-  if (keep) for (const k of ['pearls', 'globalUpgrades', 'settings', 'lifetime']) s[k] = keep[k];
+  if (keep) for (const k of ['pearls', 'globalUpgrades', 'settings', 'lifetime', 'tour']) s[k] = keep[k];
   s.coins = CONFIG.regions[regionIndex].startCoins + metaValue('startCoins', s);
   return s;
 }
@@ -678,11 +916,14 @@ const marketLevel = () => (world.town && world.town.b ? world.town.b.l : 1);
 const marketMult = () => 1 + CONFIG.market.bonus[marketLevel() - 1];
 const regionMarket = () => world.region.market || { cost: 1, tax: 1 };
 const taxRate = () => CONFIG.market.tax[marketLevel() - 1] * regionMarket().tax;
-const sellPrice = g => CONFIG.goods[g].price * marketMult() * priceMult(g) * world.ferryMult;
+const tourMult = () => 1 + CONFIG.tour.priceBonus * (state.tour || 0);   // Dreiländer-Rundfahrten
+const sellPrice = g => CONFIG.goods[g].price * marketMult() * priceMult(g) * world.ferryMult * tourMult();
 const upgradeCost = b => Math.ceil(def(b).upBase * Math.pow(CONFIG.levels.costGrowth, b.l - 1) * (b.k === 'market' ? regionMarket().cost : 1));
 const countKind = k => world.octs.filter(o => o.b && o.b.k === k).length;
 const atMax = k => CONFIG.buildings[k].max !== undefined && countKind(k) >= CONFIG.buildings[k].max;   // max = Höchstzahl pro Region
 const buildCost = k => (atMax(k) ? Infinity : Math.ceil(CONFIG.buildings[k].build * Math.pow(CONFIG.buildGrowth, countKind(k))));
+const isEnergy = g => !!CONFIG.goods[g].energy;   // Energie (Strom): kein Lager, Überschuss geht immer ins Netz
+const sellOn = g => isEnergy(g) || !!state.market.sell[g];
 const regionProduces = g => world.octs.some(o => o.unlocked && o.b && def(o.b).out === g);
 const regionGoods = () => world.region.chains.flat();
 
@@ -698,7 +939,10 @@ function unlockCost() {
 const isUnlockable = o => !o.unlocked && !isHangarField(o) && o.nOct.some(n => n && n.unlocked);
 const allUnlocked = () => world.octs.every(o => o.unlocked || isHangarField(o));
 /* --- Luftschiff --- */
-const nextRegion = () => CONFIG.regions[state.regionIndex + 1] || null;
+// Finale: nach der letzten Region führt die Dreiländer-Rundfahrt zurück zur ersten
+const isFinale = () => !!(world.region.airship && world.region.airship.finale);
+const nextRegionIndex = () => (state.regionIndex + 1 < CONFIG.regions.length ? state.regionIndex + 1 : isFinale() ? 0 : -1);
+const nextRegion = () => CONFIG.regions[nextRegionIndex()] || null;
 const airshipLoading = () => !!(world.hangar && world.region.airship && nextRegion());
 
 /* --- Ballon --- */
@@ -795,8 +1039,9 @@ function tryLaunchAirship() {
   save();
   closeSheet(); closeModal();
   // Spielstand wechselt erst nach der Animation; Abschluss per Timer, falls rAF pausiert (Tab im Hintergrund)
-  fx.flight = { x: h.cx, y: h.cy, t0: performance.now(), dur: CONFIG.airship.flightMs, done: () => startRegion(state.regionIndex + 1, pearls) };
-  setTimeout(finishFlight, CONFIG.airship.flightMs + 50);
+  const idx = nextRegionIndex(), tour = isFinale();
+  fx.flight = { x: h.cx, y: h.cy, grand: tour, t0: performance.now(), dur: CONFIG.airship.flightMs * (tour ? 1.3 : 1), done: () => startRegion(idx, pearls, tour) };
+  setTimeout(finishFlight, fx.flight.dur + 50);
   sound.pling(440); setTimeout(() => sound.pling(660), 200); setTimeout(() => sound.pling(880), 400);
   vibrate([40, 60, 40]);
   return true;
@@ -808,13 +1053,14 @@ function finishFlight() {
   fx.flight = null;
   done();
 }
-function startRegion(idx, pearlsReward) {
+function startRegion(idx, pearlsReward, tour) {
   state.pearls += pearlsReward; state.lifetime.pearls += pearlsReward; state.lifetime.regions++;
+  if (tour) state.tour = (state.tour || 0) + 1;
   startState(newState(idx, state));
   centerCamera();
   fx.fadeIn = performance.now();
   save();
-  showRegionIntro(pearlsReward);
+  showRegionIntro(pearlsReward, tour);
 }
 function tryLaunchBalloon() {
   const st = world.station;
@@ -903,7 +1149,7 @@ function tryBuild(o, k) {
 const DT = 1 / CONFIG.tickRate;
 
 // Darf eine Ware angenommen werden? Bei aktivem Verkauf immer, sonst nur mit Lagerplatz.
-function canAccept(g, n) { return state.market.sell[g] || (state.inventory[g] || 0) + n <= storageCap(); }
+function canAccept(g, n) { return sellOn(g) || (state.inventory[g] || 0) + n <= storageCap(); }
 // Lädt Waren aus dem Lager in eine Ladung (Ballon/Luftschiff), rate = Einheiten/s je Ware
 function loadCargo(c, need, rate, dt) {
   if (!c.load || cargoFull(c, need)) { c.t = 0; return; }
@@ -919,7 +1165,7 @@ function loadCargo(c, need, rate, dt) {
 }
 // Verkauft alles über der Reserve (die Betriebe für ihre nächste Charge brauchen)
 function sellSurplus(g) {
-  if (!state.market.sell[g]) return 0;
+  if (!sellOn(g)) return 0;
   const n = (state.inventory[g] || 0) - (world.reserve[g] || 0);
   if (n <= 0) return 0;
   state.inventory[g] -= n;
@@ -1033,7 +1279,8 @@ function spawnTransport(o, d) {
     if (fx.dots.length >= C.maxDots) return;
     const path = findSourcePath(o, g);
     if (!path || path.len <= 0) continue;
-    fx.dots.push({ path, t0: performance.now(), dur: clamp(path.len / C.speed, C.minSeconds, C.maxSeconds) * 1000, color: CONFIG.goods[g].color });
+    const spark = isEnergy(g);
+    fx.dots.push({ path, spark, t0: performance.now(), dur: clamp(path.len / C.speed, C.minSeconds, C.maxSeconds) * 1000 * (spark ? 0.5 : 1), color: CONFIG.goods[g].color });
   }
 }
 
@@ -1096,10 +1343,12 @@ function drawBackground(now) {
   ctx.save();
   ctx.translate((vw / 2 - sx((b.minX + b.maxX) / 2)) * par, 0);
   const left = sx(b.minX - W * 3), right = sx(b.maxX + W * 3), span = right - left;
-  ctx.fillStyle = '#c9dbe8';
+  // Bergpanorama je Region (mountains.hts: Höhen an festen Stützstellen)
+  const MT = world.region.mountains || {};
+  ctx.fillStyle = MT.color || '#c9dbe8';
   ctx.beginPath(); ctx.moveTo(left, baseY);
   const peaks = [0, .08, .15, .22, .3, .36, .45, .52, .6, .68, .74, .82, .9, 1];
-  const hts = [0, 60, 30, 95, 50, 120, 70, 140, 80, 100, 55, 110, 40, 0];
+  const hts = MT.hts || [0, 60, 30, 95, 50, 120, 70, 140, 80, 100, 55, 110, 40, 0];
   peaks.forEach((p, i) => ctx.lineTo(left + span * p, baseY - hts[i] * cam.zoom * 0.7));
   ctx.closePath(); ctx.fill();
   // weicher Dunst am Bergfuß statt harter Kante
@@ -1269,7 +1518,7 @@ function smoke(x, y, z, now) {
 }
 const isRunning = b => !!(b && b.a && b.p < 1);
 // Luftschiff (generisch, eigene Form); (x,y) = Mitte, s = Länge
-function drawAirshipShape(x, y, s, now) {
+function drawAirshipShape(x, y, s, now, grand) {
   const h = s * 0.26;
   ctx.fillStyle = '#9aa7b3'; // Leitwerk
   ctx.beginPath(); ctx.moveTo(x - s * 0.38, y); ctx.lineTo(x - s * 0.52, y - h * 0.9); ctx.lineTo(x - s * 0.44, y); ctx.lineTo(x - s * 0.52, y + h * 0.9); ctx.closePath(); ctx.fill();
@@ -1278,7 +1527,11 @@ function drawAirshipShape(x, y, s, now) {
   ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, s / 2, h / 2, 0, 0, 7); ctx.fill();
   ctx.strokeStyle = 'rgba(80,100,120,.25)'; ctx.lineWidth = Math.max(0.6, s * 0.01);
   for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.ellipse(x + i * s * 0.09, y, s * 0.02, h / 2 * Math.sqrt(1 - Math.pow(i * 0.18, 2)), 0, 0, 7); ctx.stroke(); }
-  ctx.fillStyle = '#2f7fb5'; ctx.fillRect(x - s * 0.3, y - h * 0.06, s * 0.6, h * 0.12); // Zierstreifen
+  if (grand) { // großes Luftschiff: drei Farbbänder für die drei Länder am See, Wimpel am Heck
+    ['#2f7fb5', '#e8573f', '#f2b631'].forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(x - s * 0.32, y - h * 0.2 + i * h * 0.14, s * 0.64, h * 0.1); });
+    const wv = now !== undefined ? Math.sin(now / 200) * h * 0.08 : 0;
+    ctx.fillStyle = '#e8573f'; ctx.beginPath(); ctx.moveTo(x - s * 0.52, y - h * 0.9); ctx.lineTo(x - s * 0.64, y - h * 0.8 + wv); ctx.lineTo(x - s * 0.52, y - h * 0.7); ctx.closePath(); ctx.fill();
+  } else { ctx.fillStyle = '#2f7fb5'; ctx.fillRect(x - s * 0.3, y - h * 0.06, s * 0.6, h * 0.12); } // Zierstreifen
   ctx.fillStyle = '#e8eef3'; roundRect(x - s * 0.1, y + h * 0.42, s * 0.2, h * 0.32, h * 0.1); ctx.fill(); // Gondel
   ctx.fillStyle = '#7fb6d8'; for (let i = 0; i < 3; i++) ctx.fillRect(x - s * 0.075 + i * s * 0.055, y + h * 0.5, s * 0.035, h * 0.12);
   if (now !== undefined) { // Propeller
@@ -1374,8 +1627,7 @@ function drawDecor(o, now) {
         ctx.fillStyle = '#4b3a2a'; ctx.fillRect(tx - 1.5 * z, y0 - (th - 8) * z, 3 * z, 4 * z);
       };
       if (L >= 4) tower(x0 + 10 * z, 14);
-      tower(x0, 22);
-      flag(x0, y0 - 36 * z, z, now, L >= 6 ? '#f2b631' : '#e8573f');
+      drawLandmark(world.region.landmark, x0, y0, z, now, L, tower);
       break;
     }
     case 'hangar': {
@@ -1389,7 +1641,7 @@ function drawDecor(o, now) {
       if (!fx.flight) {
         const need = world.region.airship && world.region.airship.need, frac = need ? cargoFrac(state.airship, need) : 0;
         const ay = y0 - 22 * z - frac * 14 * z + Math.sin(now / 900) * 2 * z;
-        drawAirshipShape(x0 + 2 * z, ay, 50 * z, frac >= 1 ? now : undefined);
+        drawAirshipShape(x0 + 2 * z, ay, (isFinale() ? 64 : 50) * z, frac >= 1 ? now : undefined, isFinale());
         ctx.strokeStyle = 'rgba(75,58,42,.6)'; ctx.lineWidth = z; ctx.beginPath(); ctx.moveTo(x0 + 2 * z, ay + 9 * z); ctx.lineTo(x0 + 2 * z, by - hh - 10 * z); ctx.stroke();
       }
       break;
@@ -1437,6 +1689,170 @@ function drawDecor(o, now) {
       if (L >= 6) flag(x0 - 24 * z, y0 + 8 * z, z, now, '#f2b631');
       break;
     }
+    case 'alp': {
+      // sanfte Hügel, Kühe mit Glocken, Alphütte ab Stufe 3
+      ctx.fillStyle = 'rgba(90,150,60,.25)';
+      ctx.beginPath(); ctx.ellipse(x0 - 10 * z, y0 - 6 * z, 22 * z, 9 * z, 0, Math.PI, 0); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x0 + 14 * z, y0 - 12 * z, 16 * z, 7 * z, 0, Math.PI, 0); ctx.fill();
+      if (L >= 3) house(x0 + 16 * z, y0 - 4 * z, 15 * z, 8 * z, '#b5814e', '#6b4a2a');
+      ctx.fillStyle = '#e86a8a'; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.arc(x0 + (R(i + 20) - .5) * 44 * z, y0 + (R(i + 30) - .3) * 22 * z, 1.2 * z, 0, 7); ctx.fill(); }
+      const spots = [[-6, 2], [10, 12], [-18, 12], [2, -10], [20, 8]];
+      const nCows = Math.min(spots.length, 1 + Math.floor((L + 1) / 2));
+      for (let i = 0; i < nCows; i++) {
+        const bob = Math.sin(now / 900 + o.row + i) * .6 * z, cx = x0 + (spots[i][0] + (R(i) - .5) * 5) * z, cy = y0 + spots[i][1] * z + bob, cz = z * (i ? 0.75 : 0.9);
+        cow(cx, cy, cz);
+        ctx.fillStyle = '#f2b631'; ctx.beginPath(); ctx.arc(cx + 8 * cz, cy + 2 * cz, 1.6 * cz, 0, 7); ctx.fill(); // Glocke
+      }
+      if (L >= 6) flag(x0 - 24 * z, y0 + 6 * z, z, now, '#f2b631');
+      break;
+    }
+    case 'rock': {
+      // Felswand mit Stufen, Blöcke, Kran ab Stufe 3
+      const fw = 44 * z, fh = (16 + L * 1.5) * z;
+      ctx.fillStyle = '#a39c8e'; ctx.beginPath(); ctx.moveTo(x0 - fw / 2, y0 - 2 * z); ctx.lineTo(x0 - fw / 2 + 6 * z, y0 - fh); ctx.lineTo(x0 + 4 * z, y0 - fh - 6 * z); ctx.lineTo(x0 + fw / 2 - 4 * z, y0 - fh + 4 * z); ctx.lineTo(x0 + fw / 2, y0 - 2 * z); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#bdb6a8'; ctx.beginPath(); ctx.moveTo(x0 - fw / 2 + 6 * z, y0 - fh); ctx.lineTo(x0 + 4 * z, y0 - fh - 6 * z); ctx.lineTo(x0 + 2 * z, y0 - 6 * z); ctx.lineTo(x0 - fw / 2 + 4 * z, y0 - 4 * z); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(80,70,60,.3)'; ctx.lineWidth = z;
+      for (let i = 1; i < 3; i++) { ctx.beginPath(); ctx.moveTo(x0 - fw / 2 + 3 * z, y0 - 2 * z - i * fh / 3); ctx.lineTo(x0 + fw / 2 - 3 * z, y0 - 2 * z - i * fh / 3 + 2 * z); ctx.stroke(); }
+      const nb = Math.min(5, 1 + L);
+      for (let i = 0; i < nb; i++) { const bx = x0 + (-18 + i * 9) * z, by = y0 + (8 + (i % 2) * 5) * z; ctx.fillStyle = '#d8d2c6'; ctx.fillRect(bx, by - 5 * z, 7 * z, 5 * z); ctx.fillStyle = '#b5ae9f'; ctx.fillRect(bx + 7 * z, by - 6 * z, 2 * z, 5 * z); }
+      if (L >= 3) { // Kran
+        ctx.strokeStyle = '#f2b631'; ctx.lineWidth = 1.6 * z;
+        ctx.beginPath(); ctx.moveTo(x0 + 18 * z, y0 + 6 * z); ctx.lineTo(x0 + 18 * z, y0 - 22 * z); ctx.lineTo(x0 + 2 * z, y0 - 20 * z); ctx.stroke();
+        const sw = Math.sin(now / 900) * 2 * z; ctx.strokeStyle = '#4b5b68'; ctx.lineWidth = 0.8 * z; ctx.beginPath(); ctx.moveTo(x0 + 6 * z, y0 - 20 * z); ctx.lineTo(x0 + 6 * z + sw, y0 - 10 * z); ctx.stroke();
+      }
+      if (L >= 6) flag(x0 - 20 * z, y0 - fh, z, now, '#f2b631');
+      break;
+    }
+    case 'sheep': {
+      // Zaun, Schafe (wollige Wolken), Schäferhütte ab Stufe 3
+      ctx.strokeStyle = '#a0703f'; ctx.lineWidth = 1.3 * z;
+      ctx.beginPath(); ctx.moveTo(x0 - 26 * z, y0 - 14 * z); ctx.lineTo(x0 + 22 * z, y0 - 18 * z); ctx.stroke();
+      if (L >= 3) house(x0 - 16 * z, y0 - 2 * z, 12 * z, 8 * z, '#d9c3a0', '#7a4a2a');
+      const spots = [[4, 0], [16, 10], [-10, 12], [12, -10], [-2, 18], [24, -2]];
+      const n = Math.min(spots.length, 1 + L);
+      for (let i = 0; i < n; i++) {
+        const bob = Math.sin(now / 800 + o.col + i * 1.7) * .5 * z, cx = x0 + spots[i][0] * z, cy = y0 + spots[i][1] * z + bob, k = z * (0.8 + R(i) * 0.25);
+        ctx.fillStyle = '#3b3b3b'; ctx.fillRect(cx - 4 * k, cy + 2 * k, 1.5 * k, 3.5 * k); ctx.fillRect(cx + 3 * k, cy + 2 * k, 1.5 * k, 3.5 * k);
+        ctx.fillStyle = '#f7f4ee'; for (const [dx, dy] of [[-3, 0], [0, -2], [3, 0], [0, 1.5]]) { ctx.beginPath(); ctx.arc(cx + dx * k, cy + dy * k, 3.6 * k, 0, 7); ctx.fill(); }
+        ctx.fillStyle = '#3b3b3b'; ctx.beginPath(); ctx.ellipse(cx + 6.5 * k, cy - 1 * k, 2.2 * k, 1.8 * k, 0, 0, 7); ctx.fill();
+      }
+      if (L >= 6) flag(x0 + 24 * z, y0 + 10 * z, z, now, '#f2b631');
+      break;
+    }
+    case 'bigorchard': {
+      // lange Baumreihen, Kisten, Traktor ab Stufe 3
+      const rows = 3, per = Math.min(5, 2 + Math.ceil(L / 2));
+      for (let r = 0; r < rows; r++) for (let i = 0; i < per; i++) {
+        const tx = x0 + (-22 + i * (44 / Math.max(1, per - 1)) + (r % 2) * 3) * z, ty = y0 + (-10 + r * 10) * z;
+        ctx.fillStyle = '#8a5a33'; ctx.fillRect(tx - 0.8 * z, ty - 4 * z, 1.6 * z, 4 * z);
+        ctx.fillStyle = r % 2 ? '#5aa83a' : '#4f9a33'; ctx.beginPath(); ctx.arc(tx, ty - 6.5 * z, 4.2 * z, 0, 7); ctx.fill();
+        ctx.fillStyle = '#d9452f'; ctx.beginPath(); ctx.arc(tx + 1.5 * z, ty - 6 * z, 1.1 * z, 0, 7); ctx.fill();
+      }
+      if (L >= 2) { ctx.fillStyle = '#a0703f'; for (let i = 0; i < Math.min(4, L - 1); i++) { roundRect(x0 + (-24 + i * 6) * z, y0 + 16 * z, 5 * z, 4 * z, z); ctx.fill(); } }
+      if (L >= 3) { // Traktor fährt die Reihe ab
+        const tx = x0 + Math.sin(now / 2500 + o.col) * 18 * z, ty = y0 + 13 * z;
+        ctx.fillStyle = '#3f8f3a'; ctx.fillRect(tx - 4 * z, ty - 5 * z, 8 * z, 4 * z); ctx.fillRect(tx - 1 * z, ty - 8 * z, 4 * z, 3 * z);
+        ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(tx - 2.5 * z, ty, 2.2 * z, 0, 7); ctx.arc(tx + 3 * z, ty, 1.5 * z, 0, 7); ctx.fill();
+      }
+      if (L >= 6) flag(x0 + 24 * z, y0 + 12 * z, z, now, '#f2b631');
+      break;
+    }
+    case 'workshop': {
+      // kleine Werkstatthäuser mit großen Fenstern, Turmuhr ab Stufe 4
+      const hs = [[-12, 6, '#f6efe0', '#2f5f8a'], [12, 12, '#efe6d2', '#6f4a8e'], [14, -8, '#f6efe0', '#9c5b44'], [-14, -10, '#efe6d2', '#2f5f8a']];
+      hs.slice(0, Math.min(hs.length, 1 + Math.ceil(L / 2))).forEach(([dx, dy, w, r]) => {
+        house(x0 + dx * z, y0 + dy * z, 14 * z, 9 * z, w, r);
+        ctx.fillStyle = '#bfe3f2'; ctx.fillRect(x0 + (dx - 5) * z, y0 + (dy - 7) * z, 10 * z, 4 * z);
+      });
+      if (L >= 4) {
+        const cx = x0 + 2 * z, cy = y0 - 4 * z;
+        ctx.fillStyle = '#e6dcc6'; ctx.fillRect(cx - 4 * z, cy - 20 * z, 8 * z, 22 * z);
+        ctx.fillStyle = '#2f5f8a'; ctx.beginPath(); ctx.moveTo(cx - 5 * z, cy - 20 * z); ctx.lineTo(cx, cy - 28 * z); ctx.lineTo(cx + 5 * z, cy - 20 * z); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx, cy - 15 * z, 3 * z, 0, 7); ctx.fill();
+        const a = now / 1000;
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 0.7 * z; ctx.beginPath(); ctx.moveTo(cx, cy - 15 * z); ctx.lineTo(cx + Math.cos(a) * 2.4 * z, cy - 15 * z + Math.sin(a) * 2.4 * z); ctx.moveTo(cx, cy - 15 * z); ctx.lineTo(cx + Math.cos(a / 12) * 1.6 * z, cy - 15 * z + Math.sin(a / 12) * 1.6 * z); ctx.stroke();
+      }
+      // Zahnrad
+      const gx = x0 - 22 * z, gy = y0 + 16 * z, rot = now / 900;
+      ctx.fillStyle = '#b8a36a'; ctx.beginPath();
+      for (let i = 0; i < 16; i++) { const a = rot + i * Math.PI / 8, r = (i % 2 ? 4 : 3) * z; ctx.lineTo(gx + Math.cos(a) * r, gy + Math.sin(a) * r * T); }
+      ctx.closePath(); ctx.fill();
+      if (L >= 6) flag(x0 + 24 * z, y0 + 4 * z, z, now, '#f2b631');
+      break;
+    }
+    case 'veggies': {
+      // Beetreihen in verschiedenen Grüntönen, Gewächshaus ab Stufe 3
+      const rows = Math.min(6, 3 + Math.ceil(L / 2)), cols = ['#4f9a33', '#7cc35a', '#a6d86a', '#3f8f3a', '#c0503f', '#e8a23b'];
+      for (let r = 0; r < rows; r++) {
+        const yy = y0 + (-14 + r * 6) * z;
+        ctx.fillStyle = '#9c7a52'; ctx.fillRect(x0 - 24 * z, yy, 48 * z, 2.5 * z);
+        ctx.fillStyle = cols[(r + o.col) % cols.length];
+        for (let i = 0; i < 7; i++) { ctx.beginPath(); ctx.arc(x0 + (-21 + i * 7) * z, yy, 2.2 * z, 0, 7); ctx.fill(); }
+      }
+      if (L >= 3) { // Gewächshaus
+        const gx = x0 + 14 * z, gy = y0 + 18 * z;
+        ctx.fillStyle = 'rgba(220,240,250,.85)'; ctx.fillRect(gx - 10 * z, gy - 7 * z, 20 * z, 7 * z);
+        ctx.beginPath(); ctx.ellipse(gx, gy - 7 * z, 10 * z, 5 * z, 0, Math.PI, 0); ctx.fill();
+        ctx.strokeStyle = 'rgba(90,120,140,.6)'; ctx.lineWidth = 0.7 * z; for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(gx + i * 5 * z, gy); ctx.lineTo(gx + i * 5 * z, gy - 10 * z); ctx.stroke(); }
+      }
+      if (L >= 6) flag(x0 - 24 * z, y0 + 14 * z, z, now, '#f2b631');
+      break;
+    }
+    case 'flowers': {
+      // bunte Blumenbeete, Weg, Palme/Pavillon ab Stufe 3
+      const cols = ['#e86a8a', '#f2b631', '#8a6fd1', '#ffffff', '#e8573f', '#5b9bd5'];
+      ctx.fillStyle = '#e6d3a8'; ctx.beginPath(); ctx.ellipse(x0, y0, 30 * z, 4 * z, -0.2, 0, 7); ctx.fill();
+      const beds = Math.min(6, 2 + L);
+      for (let bI = 0; bI < beds; bI++) {
+        const bx = x0 + (-16 + (bI % 3) * 16) * z, by = y0 + (bI < 3 ? -9 : 10) * z;
+        ctx.fillStyle = '#5aa83a'; ctx.beginPath(); ctx.ellipse(bx, by, 7 * z, 3.5 * z, 0, 0, 7); ctx.fill();
+        for (let i = 0; i < 6; i++) { ctx.fillStyle = cols[(i + bI) % cols.length]; ctx.beginPath(); ctx.arc(bx + (R(bI * 7 + i) - .5) * 11 * z, by + (R(bI * 7 + i + 3) - .5) * 5 * z, 1.3 * z, 0, 7); ctx.fill(); }
+      }
+      if (L >= 3) { // Pavillon
+        const px = x0 + 22 * z, py = y0 - 2 * z;
+        ctx.fillStyle = '#fbf3e4'; ctx.fillRect(px - 4 * z, py - 8 * z, 1.5 * z, 8 * z); ctx.fillRect(px + 2.5 * z, py - 8 * z, 1.5 * z, 8 * z);
+        ctx.fillStyle = '#2f7fb5'; ctx.beginPath(); ctx.moveTo(px - 6 * z, py - 8 * z); ctx.lineTo(px, py - 14 * z); ctx.lineTo(px + 6 * z, py - 8 * z); ctx.closePath(); ctx.fill();
+      }
+      if (L >= 6) flag(x0 - 26 * z, y0 + 4 * z, z, now, '#f2b631');
+      break;
+    }
+    case 'volcano': {
+      // erloschener Kegelberg mit Burgruine, Abbau am Fuß
+      const vh = (24 + L) * z;
+      ctx.fillStyle = '#8f9a6a'; ctx.beginPath(); ctx.moveTo(x0 - 26 * z, y0 + 8 * z); ctx.lineTo(x0 - 6 * z, y0 + 8 * z - vh); ctx.lineTo(x0 + 6 * z, y0 + 8 * z - vh); ctx.lineTo(x0 + 26 * z, y0 + 8 * z); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#7a845a'; ctx.beginPath(); ctx.moveTo(x0 + 6 * z, y0 + 8 * z - vh); ctx.lineTo(x0 + 26 * z, y0 + 8 * z); ctx.lineTo(x0 + 4 * z, y0 + 8 * z); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#b8b0a0'; ctx.fillRect(x0 - 4 * z, y0 + 8 * z - vh - 5 * z, 4 * z, 6 * z); ctx.fillRect(x0 + 1 * z, y0 + 8 * z - vh - 3 * z, 3 * z, 4 * z); // Ruine
+      ctx.fillStyle = '#5d5a58'; ctx.beginPath(); ctx.moveTo(x0 - 18 * z, y0 + 8 * z); ctx.lineTo(x0 - 12 * z, y0 - 2 * z); ctx.lineTo(x0 - 4 * z, y0 + 8 * z); ctx.closePath(); ctx.fill(); // Anschnitt
+      const nb = Math.min(4, Math.ceil(L / 2) + 1);
+      for (let i = 0; i < nb; i++) { ctx.fillStyle = '#4b4846'; ctx.beginPath(); ctx.arc(x0 + (8 + i * 5) * z, y0 + (14 + (i % 2) * 3) * z, 2.2 * z, 0, 7); ctx.fill(); }
+      if (L >= 4) { const sw = Math.sin(now / 700) * 2 * z; ctx.fillStyle = '#f2b631'; roundRect(x0 - 26 * z, y0 + 12 * z, 10 * z, 5 * z, z); ctx.fill(); ctx.strokeStyle = '#d39a12'; ctx.lineWidth = 1.6 * z; ctx.beginPath(); ctx.moveTo(x0 - 17 * z, y0 + 13 * z); ctx.lineTo(x0 - 12 * z + sw, y0 + 6 * z); ctx.stroke(); }
+      if (L >= 6) flag(x0, y0 + 8 * z - vh - 5 * z, z, now, '#f2b631');
+      break;
+    }
+    case 'river': {
+      // Bach quer über das Feld, Kraftwerk mit Wasserrad, Mast mit Leitung
+      ctx.strokeStyle = '#7cc3e6'; ctx.lineWidth = 7 * z; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x0 - 30 * z, y0 - 14 * z); ctx.bezierCurveTo(x0 - 8 * z, y0 - 12 * z, x0 - 6 * z, y0 + 10 * z, x0 + 30 * z, y0 + 12 * z); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.2 * z;
+      const ph = (now / 600) % 1;
+      ctx.setLineDash([4 * z, 8 * z]); ctx.lineDashOffset = -ph * 12 * z;
+      ctx.beginPath(); ctx.moveTo(x0 - 30 * z, y0 - 14 * z); ctx.bezierCurveTo(x0 - 8 * z, y0 - 12 * z, x0 - 6 * z, y0 + 10 * z, x0 + 30 * z, y0 + 12 * z); ctx.stroke();
+      ctx.setLineDash([]); ctx.lineDashOffset = 0; ctx.lineCap = 'butt';
+      if (L >= 5) { ctx.fillStyle = '#b8c0c7'; ctx.fillRect(x0 - 24 * z, y0 - 20 * z, 6 * z, 12 * z); ctx.fillStyle = '#9aa4ad'; ctx.fillRect(x0 - 21 * z, y0 - 20 * z, 3 * z, 12 * z); } // Staumauer
+      const run = isRunning(o.b) || (o.b && o.b.p > 0);
+      const wx = x0 - 4 * z, wy = y0 + 2 * z, wr = (6 + L * 0.5) * z, rot = run ? now / 300 : 0;
+      ctx.strokeStyle = '#8a5a33'; ctx.lineWidth = 1.4 * z;
+      ctx.beginPath(); ctx.arc(wx, wy, wr, 0, 7); ctx.stroke();
+      for (let i = 0; i < 6; i++) { const a = rot + i * Math.PI / 3; ctx.beginPath(); ctx.moveTo(wx, wy); ctx.lineTo(wx + Math.cos(a) * wr, wy + Math.sin(a) * wr); ctx.stroke(); }
+      house(x0 + 10 * z, y0 + 8 * z, (12 + L) * z, (8 + L * 0.6) * z, '#e9e4da', '#5d6b78');
+      // Strommast
+      const mx = x0 + 24 * z, my = y0 - 2 * z;
+      ctx.strokeStyle = '#6b7f90'; ctx.lineWidth = 1.2 * z;
+      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx, my - 20 * z); ctx.moveTo(mx - 5 * z, my - 17 * z); ctx.lineTo(mx + 5 * z, my - 17 * z); ctx.stroke();
+      ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.arc(mx, my - 22 * z, (1.2 + Math.abs(Math.sin(now / 250)) * 1.2) * z, 0, 7); ctx.fill();
+      if (L >= 6) flag(x0 + 4 * z, y0 - 16 * z, z, now, '#f2b631');
+      break;
+    }
     case 'fishground':
     case 'water': {
       ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.5 * z;
@@ -1470,6 +1886,96 @@ function drawDecor(o, now) {
       ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(bx, by - 13 * z); ctx.lineTo(bx + 6 * z, by - 1 * z); ctx.lineTo(bx, by - 1 * z); ctx.closePath(); ctx.fill();
       break;
     }
+  }
+}
+
+// Wahrzeichen der Regionshauptstadt (generische, eigene Formen)
+function drawLandmark(kind, x0, y0, z, now, L, tower) {
+  const fc = L >= 6 ? '#f2b631' : '#e8573f';
+  switch (kind) {
+    case 'lighthouse': {
+      // Hafenmole mit Leuchtturm und Löwe auf dem Sockel
+      ctx.fillStyle = '#d9cba9'; ctx.fillRect(x0 + 4 * z, y0 - 2 * z, 24 * z, 4 * z);
+      const lx = x0 + 22 * z, ly = y0, lh = 34 * z;
+      ctx.fillStyle = '#f4f1ea'; ctx.beginPath(); ctx.moveTo(lx - 5 * z, ly); ctx.lineTo(lx - 3 * z, ly - lh); ctx.lineTo(lx + 3 * z, ly - lh); ctx.lineTo(lx + 5 * z, ly); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#c0503f'; for (let i = 1; i < 4; i++) ctx.fillRect(lx - (5 - i * 0.5) * z, ly - i * 9 * z, (10 - i) * z, 3 * z);
+      ctx.fillStyle = '#4b5b68'; ctx.fillRect(lx - 4 * z, ly - lh - 2 * z, 8 * z, 2 * z);
+      const blink = (Math.sin(now / 400) + 1) / 2;
+      ctx.fillStyle = `rgba(255,214,90,${0.5 + blink * 0.5})`; ctx.fillRect(lx - 2.5 * z, ly - lh - 7 * z, 5 * z, 5 * z);
+      ctx.fillStyle = '#2f5f8a'; ctx.beginPath(); ctx.moveTo(lx - 4 * z, ly - lh - 7 * z); ctx.lineTo(lx, ly - lh - 12 * z); ctx.lineTo(lx + 4 * z, ly - lh - 7 * z); ctx.closePath(); ctx.fill();
+      // Löwe (sitzend, stilisiert)
+      const px = x0 + 6 * z, py = y0;
+      ctx.fillStyle = '#cfc4ad'; ctx.fillRect(px - 4 * z, py - 10 * z, 8 * z, 10 * z);
+      ctx.fillStyle = '#b89a5a'; ctx.beginPath(); ctx.ellipse(px, py - 13 * z, 3.5 * z, 3 * z, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(px + 2 * z, py - 17 * z, 2.6 * z, 0, 7); ctx.fill();
+      tower(x0 - 8 * z, 18);
+      flag(x0 - 8 * z, y0 - 32 * z, z, now, fc);
+      break;
+    }
+    case 'stage': {
+      // Bühne im See: Plattform auf dem Wasser, Bogenkulisse, Scheinwerfer; Seilbahn zum Hausberg
+      ctx.fillStyle = '#7cc3e6'; ctx.beginPath(); ctx.ellipse(x0 + 16 * z, y0 + 2 * z, 15 * z, 6 * z, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#6b5a4a'; ctx.fillRect(x0 + 4 * z, y0 - 1 * z, 24 * z, 3 * z);
+      ctx.strokeStyle = '#e9e4da'; ctx.lineWidth = 2.4 * z;
+      ctx.beginPath(); ctx.arc(x0 + 16 * z, y0 - 1 * z, 10 * z, Math.PI, 0); ctx.stroke();
+      ctx.strokeStyle = '#c0503f'; ctx.lineWidth = 1.4 * z;
+      ctx.beginPath(); ctx.arc(x0 + 16 * z, y0 - 1 * z, 6 * z, Math.PI, 0); ctx.stroke();
+      const glow = (Math.sin(now / 700) + 1) / 2;
+      ctx.fillStyle = `rgba(255,214,90,${0.35 + glow * 0.4})`;
+      ctx.beginPath(); ctx.moveTo(x0 + 6 * z, y0 - 14 * z); ctx.lineTo(x0 + 13 * z, y0 - 1 * z); ctx.lineTo(x0 + 18 * z, y0 - 1 * z); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x0 + 26 * z, y0 - 14 * z); ctx.lineTo(x0 + 14 * z, y0 - 1 * z); ctx.lineTo(x0 + 19 * z, y0 - 1 * z); ctx.closePath(); ctx.fill();
+      // Seilbahn
+      ctx.strokeStyle = '#4b5b68'; ctx.lineWidth = 0.8 * z;
+      ctx.beginPath(); ctx.moveTo(x0 - 22 * z, y0 - 2 * z); ctx.lineTo(x0 - 4 * z, y0 - 34 * z); ctx.stroke();
+      const g = (Math.sin(now / 3000) + 1) / 2, gx = lerp(x0 - 22 * z, x0 - 4 * z, g), gy = lerp(y0 - 2 * z, y0 - 34 * z, g);
+      ctx.fillStyle = '#c0503f'; ctx.fillRect(gx - 2.5 * z, gy + 1 * z, 5 * z, 4 * z);
+      tower(x0 - 6 * z, 18);
+      flag(x0 - 6 * z, y0 - 32 * z, z, now, fc);
+      break;
+    }
+    case 'harbor': {
+      // Hafenbecken mit Kai, Lagerhaus und Hafenkran; daneben ein wuchtiger Burgturm
+      ctx.fillStyle = '#7cc3e6'; ctx.beginPath(); ctx.ellipse(x0 + 16 * z, y0 + 3 * z, 14 * z, 6 * z, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#c9b48a'; ctx.fillRect(x0 + 2 * z, y0 - 3 * z, 26 * z, 3 * z);
+      house(x0 + 22 * z, y0 - 3 * z, 9 * z, 7 * z, '#e9dcc0', '#9c5b44');
+      ctx.strokeStyle = '#e8573f'; ctx.lineWidth = 1.6 * z;
+      const sw = Math.sin(now / 1500) * 3 * z;
+      ctx.beginPath(); ctx.moveTo(x0 + 10 * z, y0 - 3 * z); ctx.lineTo(x0 + 10 * z, y0 - 26 * z); ctx.lineTo(x0 + 22 * z + sw, y0 - 22 * z); ctx.stroke();
+      ctx.strokeStyle = '#4b5b68'; ctx.lineWidth = 0.7 * z; ctx.beginPath(); ctx.moveTo(x0 + 20 * z + sw, y0 - 22 * z); ctx.lineTo(x0 + 20 * z + sw, y0 - 12 * z); ctx.stroke();
+      ctx.fillStyle = '#a0703f'; ctx.fillRect(x0 + 18 * z + sw, y0 - 12 * z, 4 * z, 3 * z);
+      // Burgturm mit Zinnen
+      const bx = x0 - 8 * z, by = y0 + 2 * z;
+      ctx.fillStyle = '#e6dcc6'; ctx.fillRect(bx - 7 * z, by - 26 * z, 14 * z, 26 * z);
+      ctx.fillStyle = '#cfc2a6'; ctx.fillRect(bx, by - 26 * z, 7 * z, 26 * z);
+      ctx.fillStyle = '#e6dcc6'; for (let i = 0; i < 4; i++) ctx.fillRect(bx - 7 * z + i * 4 * z, by - 29 * z, 2.4 * z, 3 * z);
+      ctx.fillStyle = '#4b3a2a'; ctx.fillRect(bx - 1.5 * z, by - 18 * z, 3 * z, 4 * z);
+      flag(bx, by - 29 * z, z, now, fc);
+      break;
+    }
+    case 'minster': {
+      // Münster mit hohem Turm und durchbrochener Spitze, Hafen mit Molenturm und drehender Figur
+      const mx = x0 - 6 * z, my = y0 + 4 * z;
+      ctx.fillStyle = '#ddd2bb'; ctx.fillRect(mx - 14 * z, my - 14 * z, 18 * z, 14 * z);
+      ctx.fillStyle = '#7d756a'; ctx.beginPath(); ctx.moveTo(mx - 15 * z, my - 14 * z); ctx.lineTo(mx - 5 * z, my - 21 * z); ctx.lineTo(mx + 5 * z, my - 14 * z); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#e6dcc6'; ctx.fillRect(mx + 2 * z, my - 34 * z, 10 * z, 34 * z);
+      ctx.fillStyle = '#cfc2a6'; ctx.fillRect(mx + 7 * z, my - 34 * z, 5 * z, 34 * z);
+      ctx.fillStyle = '#4b3a2a'; for (let i = 0; i < 3; i++) ctx.fillRect(mx + 5 * z, my - (30 - i * 8) * z, 2.5 * z, 4 * z);
+      ctx.strokeStyle = '#8f8574'; ctx.lineWidth = 1.2 * z;
+      ctx.beginPath(); ctx.moveTo(mx + 2 * z, my - 34 * z); ctx.lineTo(mx + 7 * z, my - 48 * z); ctx.lineTo(mx + 12 * z, my - 34 * z); ctx.moveTo(mx + 4 * z, my - 39 * z); ctx.lineTo(mx + 10 * z, my - 39 * z); ctx.stroke();
+      // Hafen: Becken, Mole mit Turm, Figur dreht sich langsam
+      ctx.fillStyle = '#7cc3e6'; ctx.beginPath(); ctx.ellipse(x0 + 20 * z, y0 + 6 * z, 11 * z, 5 * z, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#c9b48a'; ctx.fillRect(x0 + 12 * z, y0 + 2 * z, 18 * z, 2.5 * z);
+      ctx.fillStyle = '#efe2c6'; ctx.fillRect(x0 + 24 * z, y0 - 10 * z, 5 * z, 12 * z);
+      ctx.fillStyle = '#2f5f8a'; ctx.beginPath(); ctx.moveTo(x0 + 23 * z, y0 - 10 * z); ctx.lineTo(x0 + 26.5 * z, y0 - 15 * z); ctx.lineTo(x0 + 30 * z, y0 - 10 * z); ctx.closePath(); ctx.fill();
+      const sw = Math.cos(now / 2500);
+      ctx.fillStyle = '#b89a5a'; ctx.beginPath(); ctx.ellipse(x0 + 18 * z, y0 - 4 * z, 2.2 * z * Math.max(0.3, Math.abs(sw)), 5 * z, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#9aa4ad'; ctx.fillRect(x0 + 16.5 * z, y0 + 1 * z, 3 * z, 2 * z);
+      flag(mx + 7 * z, my - 48 * z, z, now, fc);
+      break;
+    }
+    default:
+      tower(x0, 22);
+      flag(x0, y0 - 36 * z, z, now, fc);
   }
 }
 
@@ -1624,6 +2130,12 @@ function drawDots(now) {
     const seg = cum[i] - cum[i - 1] || 1, t = clamp((dist - cum[i - 1]) / seg, 0, 1);
     const a = pts[i - 1], b = pts[i];
     const x = sx(lerp(a[0], b[0], t)), y = sy(lerp(a[1], b[1], t)) + lerp(a[2], b[2], t) * off - 3 * z;
+    if (d.spark) { // Strom: leuchtender Funke statt Karren
+      const fl = 1 + Math.sin(now / 40 + d.t0) * 0.25;
+      ctx.fillStyle = 'rgba(255,220,80,.35)'; ctx.beginPath(); ctx.arc(x, y - 3 * z, 6 * z * fl, 0, 7); ctx.fill();
+      ctx.fillStyle = '#fff6c2'; ctx.beginPath(); ctx.arc(x, y - 3 * z, 2.6 * z, 0, 7); ctx.fill();
+      continue;
+    }
     if (a[3] && b[3]) { // Boot auf dem Wasser
       const dir = b[0] >= a[0] ? 1 : -1;
       ctx.fillStyle = '#8a5a33'; ctx.beginPath(); ctx.moveTo(x - 6 * z, y); ctx.lineTo(x + 6 * z, y); ctx.lineTo(x + 4 * z, y + 3 * z); ctx.lineTo(x - 4 * z, y + 3 * z); ctx.closePath(); ctx.fill();
@@ -1668,7 +2180,7 @@ function drawAirshipFlight(now) {
     const x = x0 + Math.pow(t, 2) * vw * 1.1, y = y0 - rise * 50 * z - t * vh * 0.35;
     const sc = 50 * z * (1 + t * 1.6);
     ctx.fillStyle = 'rgba(30,50,70,' + (0.18 * (1 - t)) + ')'; ctx.beginPath(); ctx.ellipse(x, sy(f.y) + 10 * z, sc * 0.4, sc * 0.08, 0, 0, 7); ctx.fill();
-    drawAirshipShape(x, y, sc, now);
+    drawAirshipShape(x, y, sc * (f.grand ? 1.3 : 1), now, f.grand);
     if (t > 0.65) { ctx.fillStyle = 'rgba(255,255,255,' + ((t - 0.65) / 0.35) + ')'; ctx.fillRect(0, 0, vw, vh); }
   }
   if (fx.fadeIn) {
@@ -1828,8 +2340,9 @@ function updateHUD() {
   if (!first && airshipLoading()) {
     const A = world.region.airship, f = cargoFrac(state.airship, A.need), full = f >= 1;
     gb.classList.toggle('done', full);
-    $('gbText').textContent = full ? 'Das Luftschiff ist startklar!' : 'Belade das Luftschiff';
-    $('gbSub').textContent = full ? 'Tippen, um nach ' + nextRegion().name + ' zu fliegen' : 'Ladung ' + pct(f) + ' % · Ziel: ' + nextRegion().name;
+    const dest = isFinale() ? 'Dreiländer-Rundfahrt' : nextRegion().name;
+    $('gbText').textContent = full ? (isFinale() ? 'Das große Luftschiff ist startklar!' : 'Das Luftschiff ist startklar!') : isFinale() ? 'Belade das große Luftschiff' : 'Belade das Luftschiff';
+    $('gbSub').textContent = full ? (isFinale() ? 'Tippen für die Dreiländer-Rundfahrt' : 'Tippen, um nach ' + dest + ' zu fliegen') : 'Ladung ' + pct(f) + ' % · Ziel: ' + dest;
     $('gbBar').style.width = pct(f) + '%';
   }
   if (first) {
@@ -1893,29 +2406,33 @@ function buildingStatus(o) {
   if (b.k === 'ferry') return ['ok', 'Die Fähre bringt deine Waren ans andere Ufer.'];
   if (!d.out) return ['ok', 'Der Markt verkauft deine Waren automatisch.'];
   if (d.in && !b.a) {
+    const noSup = Object.keys(d.in).filter(g => !regionProduces(g)).map(g => CONFIG.goods[g].name);
+    if (noSup.length) return ['bad', 'Kein Lieferant: ' + noSup.join(', ') + (noSup.length > 1 ? ' werden' : ' wird') + ' noch nicht hergestellt.'];
     const miss = Object.keys(d.in).filter(g => (state.inventory[g] || 0) < d.in[g]).map(g => CONFIG.goods[g].name).join(', ');
-    return ['bad', regionProduces(Object.keys(d.in)[0]) ? 'Wartet auf ' + miss + ' …' : 'Kein Lieferant: ' + miss + ' wird noch nicht abgebaut.'];
+    return ['bad', 'Wartet auf ' + miss + ' …'];
   }
   if (b.p >= 1 && !canAccept(d.out, d.in ? b.a : batchSize(b))) return ['bad', 'Lager voll – schalte Verkauf für ' + CONFIG.goods[d.out].name + ' ein.'];
-  return ['ok', (d.in ? 'Verarbeitet ' + b.a + '× · ' : 'Produziert · ') + (state.market.sell[d.out] ? 'Überschuss wird verkauft' : 'wird eingelagert')];
+  return ['ok', (d.in ? 'Verarbeitet ' + b.a + '× · ' : 'Produziert · ') + (isEnergy(d.out) ? 'Überschuss geht ins Netz' : state.market.sell[d.out] ? 'Überschuss wird verkauft' : 'wird eingelagert')];
 }
 
 function openHangarSheet(o) {
   const next = nextRegion(), A = world.region.airship;
   const head = sheetHead('🛫', CONFIG.fieldTypes.hangar.top, 'Luftschiffhalle', world.region.name + ' ist erkundet');
   if (!next || !A) {
-    openSheet(head + `<div class="sheet-body"><div class="note">Das Luftschiff ist bereit – aber die nächste Region (Allgäu & Lindau) wird gerade noch vermessen. Sie folgt mit einem späteren Update. Bis dahin kannst du hier weiter ausbauen, Ballons starten und Seeperlen sammeln.</div></div>
+    openSheet(head + `<div class="sheet-body"><div class="note">Das Luftschiff ist bereit – aber die nächste Region wird gerade noch vermessen. Sie folgt mit einem späteren Update. Bis dahin kannst du hier weiter ausbauen, Ballons starten und Seeperlen sammeln.</div></div>
       <button class="secbtn" id="sheetClose">${T_OK()}</button>`);
     $('sheetClose').onclick = closeSheet;
     return;
   }
+  const fin = isFinale(), pb = pct(CONFIG.tour.priceBonus);
   openSheet(head + `<div class="sheet-body">
-      <div class="note">Belade das Luftschiff und fliege über den See nach <b>${next.name}</b>. Dort beginnst du neu: Münzen, Felder und Gebäude bleiben hier. <b>Seeperlen und globale Upgrades nimmst du mit.</b></div>
+      <div class="note">${fin ? `Das <b>große Luftschiff</b> ist bereit für die <b>Dreiländer-Rundfahrt</b> um den ganzen See. Danach beginnt die Reise von vorn in <b>${next.name}</b> – mit <b>+${pb} % auf alle Verkaufspreise</b> je Rundfahrt, dauerhaft. Seeperlen und globale Upgrades nimmst du mit.`
+        : `Belade das Luftschiff und fliege über den See nach <b>${next.name}</b>. Dort beginnst du neu: Münzen, Felder und Gebäude bleiben hier. <b>Seeperlen und globale Upgrades nimmst du mit.</b>`}</div>
       <div class="cargo" id="airCargo"></div>
       <div class="kv"><span>Belohnung beim Abflug</span><b>${A.pearls} Seeperlen</b></div>
       <div class="row">Waren ans Luftschiff umleiten <button class="toggle ${state.airship.load ? 'on' : ''}" id="tAirLoad" aria-label="Luftschiff beladen"></button></div>
     </div>
-    <button class="bigbtn" id="flyBtn" style="background:#2f7fb5;box-shadow:0 4px 0 #1d5a85">🛫 Abflug nach ${next.name}</button><div class="missing" id="flyMissing"></div>`);
+    <button class="bigbtn" id="flyBtn" style="background:#2f7fb5;box-shadow:0 4px 0 #1d5a85">🛫 ${fin ? 'Dreiländer-Rundfahrt starten' : 'Abflug nach ' + next.name}</button><div class="missing" id="flyMissing"></div>`);
   $('tAirLoad').onclick = e => { state.airship.load = !state.airship.load; e.currentTarget.classList.toggle('on', state.airship.load); updateReserve(); save(); };
   $('flyBtn').onclick = () => { sound.unlock(); openFlyConfirm(); };
   sheetRefresh = () => {
@@ -1928,9 +2445,10 @@ function openHangarSheet(o) {
   sheetRefresh();
 }
 function openFlyConfirm() {
-  const next = nextRegion();
-  openModal(`<h2>Abflug nach ${next.name}?</h2>
-    <p class="hint">Du verlässt ${world.region.name}. Münzen, Felder, Gebäude, Waren und Ziele beginnen in der neuen Region von vorn.</p>
+  const next = nextRegion(), fin = isFinale();
+  openModal(`<h2>${fin ? 'Dreiländer-Rundfahrt starten?' : 'Abflug nach ' + next.name + '?'}</h2>
+    <p class="hint">Du verlässt ${world.region.name}. Münzen, Felder, Gebäude, Waren und Ziele beginnen ${fin ? 'nach der Rundfahrt in ' + next.name : 'in der neuen Region'} von vorn.</p>
+    ${fin ? `<p class="hint">Belohnung: <b>alle Verkaufspreise +${pct(CONFIG.tour.priceBonus)} %</b>, dauerhaft (Rundfahrt Nr. ${(state.tour || 0) + 1}).</p>` : ''}
     <p class="hint">Du behältst: <b>${fmt(state.pearls)} Seeperlen</b> (+${world.region.airship.pearls}), alle globalen Upgrades und deine Einstellungen. Startkapital: <b>${fmt(next.startCoins + metaValue('startCoins'))} Münzen</b>.</p>
     <button class="bigbtn" id="flyYes" style="background:#2f7fb5;box-shadow:0 4px 0 #1d5a85">🛫 Leinen los!</button>
     <button class="secbtn" id="flyNo">Noch nicht</button>`);
@@ -2007,8 +2525,9 @@ function openPlotSheet(o) {
   const ft = CONFIG.fieldTypes[o.type];
   const kinds = buildableKinds(o);
   const cards = kinds.map(k => {
-    const d = CONFIG.buildings[k], g = d.in && Object.keys(d.in)[0];
-    const line = d.in ? `${d.in[g]}× ${CONFIG.goods[g].icon} ${CONFIG.goods[g].name} → ${CONFIG.goods[d.out].icon} ${CONFIG.goods[d.out].name} · ${fmtSec(d.cycle)}` : d.desc;
+    const d = CONFIG.buildings[k];
+    const ins = d.in ? Object.keys(d.in).map(g => `${d.in[g]}× ${CONFIG.goods[g].icon} ${CONFIG.goods[g].name}`).join(' + ') : '';
+    const line = d.in ? `${ins} → ${CONFIG.goods[d.out].icon} ${CONFIG.goods[d.out].name} · ${fmtSec(d.cycle)}` : d.desc;
     return `<div class="card"><div class="ic">${d.icon}</div><div class="mid"><b>${d.name}</b>
       <small>${line}</small>
       <small id="hint_${k}"></small></div>
@@ -2023,8 +2542,8 @@ function openPlotSheet(o) {
       if (atMax(k)) { h.className = 'warn'; h.textContent = d.max === 1 ? 'Nur eine pro Region – schon gebaut.' : `Höchstens ${d.max} pro Region – alle gebaut.`; $('build_' + k).querySelector('.cost').textContent = '✓'; return; }
       if (d.max > 1) { h.className = ''; h.textContent = `${countKind(k)} von ${d.max} gebaut`; return; }
       if (!d.in) { h.className = ''; h.textContent = ''; return; }
-      const g = Object.keys(d.in)[0], ok = regionProduces(g);
-      h.className = ok ? '' : 'warn'; h.textContent = ok ? 'Wert: ' + fmtRate(sellPrice(d.out)) + ' Münzen/Stück' : 'Braucht ' + CONFIG.goods[g].name + ' – noch kein Lieferant';
+      const miss = Object.keys(d.in).filter(g => !regionProduces(g)), ok = !miss.length;
+      h.className = ok ? '' : 'warn'; h.textContent = ok ? 'Wert: ' + fmtRate(sellPrice(d.out)) + ' Münzen/Stück' : 'Braucht ' + miss.map(g => CONFIG.goods[g].name).join(' und ') + ' – noch kein Lieferant';
     };
   });
   sheetRefresh = () => refs.forEach(f => f()); sheetRefresh();
@@ -2101,22 +2620,25 @@ function openMarket(tab = 'store') {
   const rows = regionGoods().map(g => {
     const G = CONFIG.goods[g];
     return `<div class="goodrow"><div class="ic">${G.icon}</div><div class="mid"><b>${G.name}</b><small id="inv_${g}"></small></div>
-      <button class="toggle ${state.market.sell[g] ? 'on' : ''}" id="sell_${g}" aria-label="${G.name} verkaufen"></button></div>`;
+      ${isEnergy(g) ? '<span class="pill">Netz</span>' : `<button class="toggle ${state.market.sell[g] ? 'on' : ''}" id="sell_${g}" aria-label="${G.name} verkaufen"></button>`}</div>`;
   }).join('');
   openModal(`<h2>Lager & Markt</h2>${tabs}
     <p class="hint">Schalter an: Überschuss wird automatisch verkauft. Was deine Betriebe für die nächste Charge brauchen (und was der Ballon noch laden soll), bleibt immer im Lager. Schalter aus: alles wird eingelagert (max. ${storageCap()} pro Ware).</p>
     ${rows}
     <div class="kv"><span>Verkaufsbonus (Marktplatz)</span><b>+${pct(marketMult() - 1)} %</b></div>
+    ${state.tour ? `<div class="kv"><span>Dreiländer-Rundfahrten (${state.tour}×)</span><b>+${pct(tourMult() - 1)} %</b></div>` : ''}
     <div class="kv"><span>Insgesamt verdient</span><b id="earnedTotal"></b></div>
     <button class="secbtn" id="closeMarket">${T_OK()}</button>`, () => {
     for (const g of regionGoods()) {
       const el = $('inv_' + g); if (!el) continue;
       const res = world.reserve[g] ? ' · Reserve ' + world.reserve[g] : '';
-      el.textContent = `Lager ${fmt(state.inventory[g] || 0)}/${storageCap()}${res} · ${fmtRate(sellPrice(g))} Münzen/Stück`;
+      el.textContent = isEnergy(g) ? `Energie, nicht lagerbar${res ? ' · Puffer ' + world.reserve[g] : ''} · Netz zahlt ${fmtRate(sellPrice(g))} Münzen/Einheit`
+        : `Lager ${fmt(state.inventory[g] || 0)}/${storageCap()}${res} · ${fmtRate(sellPrice(g))} Münzen/Stück`;
     }
     const e = $('earnedTotal'); if (e) e.textContent = fmt(state.stats.earned) + ' Münzen';
   });
   for (const g of regionGoods()) {
+    if (isEnergy(g)) continue;
     $('sell_' + g).onclick = e => { state.market.sell[g] = !state.market.sell[g]; e.currentTarget.classList.toggle('on', state.market.sell[g]); save(); };
   }
   $('tabChains').onclick = () => openMarket('chains');
@@ -2281,7 +2803,7 @@ function showRegionDone() {
   const next = nextRegion(), A = world.region.airship;
   const need = A ? Object.keys(A.need).map(g => goodPill(g, A.need[g])).join(' ') : '';
   openModal(`<h2 class="center">${world.region.name} ist erkundet! 🎉</h2>
-    <p class="hint center">Alle Felder sind frei – die <b>Luftschiffhalle</b> ist erschienen.${next && A ? ` Belade das Luftschiff, um über den See nach <b>${next.name}</b> zu fliegen:` : ' Die nächste Region folgt mit einem späteren Update.'}</p>
+    <p class="hint center">Alle Felder sind frei – die <b>Luftschiffhalle</b> ist erschienen.${next && A ? (isFinale() ? ' Belade das <b>große Luftschiff</b> für die Dreiländer-Rundfahrt:' : ` Belade das Luftschiff, um über den See nach <b>${next.name}</b> zu fliegen:`) : ' Die nächste Region folgt mit einem späteren Update.'}</p>
     ${next && need ? `<div class="io" style="justify-content:center">${need}</div>` : ''}
     <button class="bigbtn" id="doneOk">${next && A ? 'Zur Halle' : T_OK()}</button>`);
   $('doneOk').onclick = () => { closeModal(); if (world.hangar && next) { selected = { kind: 'oct', ref: world.hangar }; openHangarSheet(world.hangar); focusAboveSheet(world.hangar); } };
@@ -2289,10 +2811,11 @@ function showRegionDone() {
   vibrate([30, 60, 30, 60, 60]);
 }
 
-function showRegionIntro(pearls) {
+function showRegionIntro(pearls, tour) {
   const R = world.region;
-  openModal(`<h2 class="center">Willkommen: ${R.name}</h2>
-    <p class="hint center">${R.intro || ''}</p>
+  const tourText = tour ? `<p class="hint center"><b>Dreiländer-Rundfahrt Nr. ${state.tour} geschafft!</b> Alle Verkaufspreise sind jetzt dauerhaft um <b>+${pct(tourMult() - 1)} %</b> höher. Die Reise beginnt von vorn.</p>` : '';
+  openModal(`<h2 class="center">${tour ? 'Zurück in ' : 'Willkommen: '}${R.name}</h2>
+    ${tourText}<p class="hint center">${tour ? '' : R.intro || ''}</p>
     ${pearls ? `<div class="big-num">${PEARL_SVG}+${pearls}</div><p class="hint center">Seeperlen für die Ankunft. Deine globalen Upgrades gelten auch hier.</p>` : ''}
     <div class="io" style="justify-content:center">${R.chains.map(c => goodPill(c[c.length - 1])).join(' ')}</div>
     <button class="bigbtn" id="introOk">Los geht's</button>`);
@@ -2363,6 +2886,8 @@ const MIGRATIONS = {
   },
   // v3 → v4 (Luftschiff): airship ergänzt normalize(), die Halle stellt buildWorld() auf
   3: s => { s.saveVersion = 4; return s; },
+  // v4 → v5 (Finale): Zähler für Dreiländer-Rundfahrten
+  4: s => { s.tour = 0; s.saveVersion = 5; return s; },
 };
 function migrate(s) {
   while (s.saveVersion < CONFIG.saveVersion) {
@@ -2388,6 +2913,7 @@ function normalize(s) {
   if (!s.globalUpgrades || typeof s.globalUpgrades !== 'object') s.globalUpgrades = {};
   if (!isFinite(s.coins)) s.coins = 0;
   if (!isFinite(s.pearls)) s.pearls = 0;
+  if (!(s.tour >= 0)) s.tour = 0;
   return s;
 }
 function save() {

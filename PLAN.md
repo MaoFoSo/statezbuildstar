@@ -112,6 +112,10 @@ Seit M4 (`saveVersion` 4):
 - `airship: { fill, load, t }` (pro Region)
 - beim Regionswechsel: `newState(neueRegion, alterState)` übernimmt `pearls`, `globalUpgrades`, `settings`, `lifetime`
 
+Seit M5 (`saveVersion` 5):
+
+- `tour`: Anzahl abgeschlossener Dreiländer-Rundfahrten (bleibt beim Regionswechsel)
+
 Regeln:
 
 - **Migrationen**: `MIGRATIONS[v] = save => save'` werden der Reihe nach angewandt, bis `CONFIG.saveVersion` erreicht ist.
@@ -126,7 +130,8 @@ Regeln:
 | 2 | Wirtschaft MVP: Oberschwaben mit 3 Ketten (Holz → Bretter → Möbel, Kies → Beton, Milch → Butter), 6 Ausbaustufen, Lager/Verkauf mit Schalter, Transportpunkte auf Wegen, Speichern/Laden/Export/Import, Offline-Ertrag mit Dialog | ✅ fertig |
 | 3 | Meta: globale Upgrades, Seeperlen, Ballonstation, Ziele/Tutorial, Lieferketten-Übersicht | ✅ fertig |
 | 4 | Luftschiff & Regionswechsel (Prestige), Region 2 Nordufer mit Wasser, Fähre, Booten | ✅ fertig |
-| 5+ | **als Nächstes:** Regionen 3–6, Events (Föhn, Herbstnebel, Feste), Quadrat-Bonusfelder, Pfahlbauten, Dialekt, PWA (Manifest, Service Worker, Icons) | – |
+| 5a | Regionen 3–6 (Allgäu & Lindau mit Energie, Vorarlberg, Thurgau & St. Gallen, Konstanz/Reichenau/Hegau), Finale Dreiländer-Rundfahrt | ✅ fertig |
+| 5b | **als Nächstes:** Events (Föhn, Herbstnebel, Feste), Quadrat-Bonusfelder, Pfahlbauten, Dialekt-Texte, PWA (Manifest, Service Worker, Icons) | – |
 
 ### Hinweise zu Meilenstein 1
 
@@ -168,9 +173,17 @@ Regeln:
 - **Fähre**: Gebäude auf `water`, `max: 3`. `world.ferryMult = 1 + Σ bonus[Stufe]` wirkt in `sellPrice()`.
 - **Balancing Nordufer**: Freischalten `50 × 1,22^n`, Startkapital 150, Marktplatz ×3. Test-Bot: ca. 36 min (Oberschwaben ca. 22 min), also wie gewünscht länger.
 
-### Nächste Schritte (Meilenstein 5+)
+### Regionen 3–6 (Meilenstein 5a)
 
-- Regionen 3–6 (Allgäu & Lindau mit Energie als neuer Ressourcenart, Vorarlberg, Thurgau & St. Gallen, Konstanz/Reichenau/Hegau mit Finale)
+- **Energie**: Waren mit `energy: true` (Strom). `sellOn(g)` ist für sie immer wahr: Sie werden nie eingelagert, alles über der Reserve geht ins Netz, und ein volles Lager hält den Erzeuger nie an. Reserve (Verarbeiter, Ballon, Luftschiff) funktioniert wie bei jeder Ware. Transporte werden als Funke gezeichnet.
+- **Mehrere Eingänge**: `in` kann mehrere Waren enthalten (z. B. Käserei `{ milk: 3, power: 1 }`). `tryStart` nimmt die kleinste mögliche Charge, Reserve und Wege gelten je Ware.
+- **Gebirgsbach** (`river`) ist Land (kein `water`), damit Transporte dort Karren bleiben.
+- **Regionen-Config** zusätzlich: `landmark` (Wahrzeichen der Hauptstadt: `lighthouse`, `stage`, `harbor`, `minster`) und `mountains` (`hts` an festen Stützstellen, `color`).
+- **Finale**: `airship.finale` in der letzten Region. `nextRegionIndex()` liefert dann 0; beim Abflug zählt `state.tour` hoch. `tourMult()` = 1 + `CONFIG.tour.priceBonus` × `tour` wirkt in `sellPrice()`.
+- **Balancing** (Test-Bot, spielt alle Regionen nacheinander und nimmt Seeperlen und Upgrades mit): Allgäu ca. 43 min, Vorarlberg ca. 54, Thurgau & St. Gallen ca. 62, Konstanz ca. 71. Stellschrauben je Region: `startCoins`, `unlock.base`, `market.cost/tax`, Gebäudekosten und Warenpreise.
+
+### Nächste Schritte (Meilenstein 5b)
+
 - Events: Föhn (doppelte Ballonboni), Herbstnebel, Feste
 - Quadrat-Bonusfelder, Pfahlbauten, Dialekt-Texte
 - PWA: `manifest.json`, `sw.js`, Icons

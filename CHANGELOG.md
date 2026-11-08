@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.5.0] – Meilenstein 5: Regionen 3–6
+
+### Neu
+- **Region 3: Allgäu & Lindau** (45 Felder + Luftschiffplatz, Inselhafen im Süden):
+  - **Energie als neue Ressourcenart**: Wasserkraftwerke an Gebirgsbächen liefern Strom
+    - Strom lässt sich nicht einlagern: kein Verkaufsschalter, was Betriebe, Ballon und Luftschiff nicht brauchen, geht sofort ins Netz
+    - Strom fließt als leuchtender Funke über die Wege statt per Karren
+  - Rohstoffe: Milch (Alpweide), Holz (Bergwald), Strom (Gebirgsbach)
+  - Ketten: Milch + Strom → Bergkäse (Käserei) · Holz → Schindeln (Schindelmacher) → Holzbau (Zimmerei, braucht Strom) · Strom
+  - Fährstationen am Inselhafen, eigene Ballon-Ladungen, 16 Ziele, Marktplatz-Faktor ×8
+  - Luftschiff: 12 Holzbau, 30 Bergkäse, 40 Strom
+  - neue prozedurale Grafik: Alpweiden mit Kühen und Glocken, Alphütte, Bach mit Wasserrad, Kraftwerk, Strommast, Staumauer; Leuchtturm und Löwe am Hafen
+- **Region 4: Vorarlberg** (44 Felder + Luftschiffplatz, Rheindelta im Süden):
+  - Rohstoffe: Stein (Steinbruch), Wolle (Schafweide), Strom (Gebirgsbach)
+  - Ketten: Stein → Werkstein (Steinmetz) → Maschinenteile (Maschinenbau, braucht viel Strom) · Wolle + Strom → Stoff (Weberei) · Strom
+  - Fährstationen im Rheindelta, eigene Ballon-Ladungen, 16 Ziele, Marktplatz-Faktor ×20
+  - Luftschiff: 12 Maschinenteile, 30 Stoff, 40 Werkstein
+  - neue prozedurale Grafik: Steinbruch mit Felswand, Blöcken und Kran, Schafweide mit Schäferhütte; Bühne im See mit Scheinwerfern und Seilbahn zum Hausberg
+- **Region 5: Thurgau & St. Gallen** (45 Felder + Luftschiffplatz, Südufer):
+  - Rohstoffe: Äpfel (Großplantage, schneller als ein Obstgarten), Wolle (Schafweide), Uhrenteile (Uhrmacherdorf), Strom (Gebirgsbach)
+  - Ketten: Äpfel → Saftkonzentrat (Saftkelterei) · Wolle + Strom → Stoff (Weberei) → Stickerei · Uhrenteile + Strom → Präzisionsmechanik (Feinmechanik) · Strom
+  - Fährstationen, eigene Ballon-Ladungen, 17 Ziele, Marktplatz-Faktor ×50
+  - Luftschiff: 10 Stickerei, 20 Präzisionsmechanik, 40 Saftkonzentrat
+  - neue prozedurale Grafik: Großplantagen mit Baumreihen und Traktor, Uhrmacherdorf mit Turmuhr und Zahnrad; Hafen mit Kran und Burgturm, großer Gipfel im Panorama
+- **Region 6: Konstanz, Reichenau & Hegau** (44 Felder + Luftschiffplatz, Untersee mit Inseln):
+  - Rohstoffe: Gemüse (Gemüseinsel), Blumen (Blumeninsel), Vulkanstein (Vulkankegel)
+  - Ketten: Gemüse → Konserven (Konservenfabrik) · Blumen → Duftöl (Duftöl-Destille) · Vulkanstein → Baustoffe (Baustoffwerk)
+  - Fährstationen, eigene Ballon-Ladungen, 15 Ziele, Marktplatz-Faktor ×120
+  - neue prozedurale Grafik: Beetreihen mit Gewächshaus, Blumenbeete mit Pavillon, Vulkankegel mit Burgruine und Bagger; Münster mit Turmspitze und Hafen mit drehender Figur; Kegelberge im Panorama
+- **Finale: Dreiländer-Rundfahrt** (Endlos-/Prestige-Modus):
+  - in Konstanz wird das **große Luftschiff** beladen (20 Duftöl, 40 Konserven, 60 Baustoffe), größer und mit drei Farbbändern
+  - die Rundfahrt führt zurück nach Oberschwaben; jede Rundfahrt erhöht alle Verkaufspreise dauerhaft um 25 % (`CONFIG.tour`) und bringt 80 Seeperlen
+  - eigener Text in Halle, Bestätigung, Ziel-Banner und Ankunftsdialog; der Bonus steht im Lager
+- Betriebe können **mehrere Eingangswaren** haben; Bauplatz-Auswahl, Status und Hinweise zeigen alle Eingänge
+- Jede Region kann ein eigenes **Bergpanorama** (`mountains`) und ein **Wahrzeichen** der Hauptstadt (`landmark`) haben
+
+### Geändert
+- Spielstand `saveVersion` 5, mit Migration von Version 4 (Zähler `tour` für Rundfahrten)
+- Hinweistexte in Halle und Abschlussdialog nennen keine feste nächste Region mehr
+- Balancing: Test-Bot braucht für Oberschwaben ca. 23 min, Nordufer ca. 34, Allgäu ca. 43, Vorarlberg ca. 54, Thurgau & St. Gallen ca. 62, Konstanz ca. 71; nach der ersten Rundfahrt Oberschwaben ca. 11 min
+
 ## [0.4.0] – Meilenstein 4: Luftschiff & Regionswechsel
 
 ### Neu
