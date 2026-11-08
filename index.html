@@ -235,7 +235,7 @@
  * 1. CONFIG – alle Spielwerte zentral
  * ===================================================================== */
 const CONFIG = {
-  saveVersion: 3,
+  saveVersion: 4,
   saveKey: 'bodenseeBuilder.save',
   autosaveSeconds: 10,
   tickRate: 10,                 // Simulation in Hz
@@ -267,7 +267,7 @@ const CONFIG = {
   storage: { cap: 100 },                     // Lagerplatz pro Ware
   // Marktplatz (Altstadt): Gebühren-Einkommen und Verkaufsbonus je Stufe
   market: { tax: [0.5, 1, 2, 4, 7, 12], bonus: [0, 0.1, 0.2, 0.35, 0.5, 0.75] },
-  offline: { capHours: 2, minSeconds: 30, stepSeconds: 0.5 },
+  offline: { capHours: 2, minSeconds: 30, stepSeconds: 0.5, maxSteps: 20000 }, // lange Abwesenheit: gröbere Schritte (8 h → 1,44 s)
   // Globale Upgrades (Seeperlen, bleiben über alle Regionen erhalten). Kosten: base × growth^Stufe
   meta: {
     speed: { name: 'Tempo', icon: '⚡', step: 0.25, max: 5, base: 5, growth: 2.2 },   // +25 % Tempo je Stufe für alle Betriebe dieser Ware
@@ -289,6 +289,8 @@ const CONFIG = {
     needGrowth: 1.35,                // Ladung wächst je Start
     flightMs: 4200,
   },
+  // Luftschiff: Ladetempo (Einheiten/s je Ware) und Dauer der Flug-Animation
+  airship: { rate: 8, flightMs: 3800, fadeMs: 900 },
   transport: { speed: 110, minSeconds: 0.7, maxSeconds: 3, maxDots: 80 },
   popupEveryMs: 1100,           // Münz-Popups pro Feld höchstens so oft
   incomeSmoothing: 0.015,       // Glättung der Einkommensanzeige pro Tick
@@ -304,11 +306,24 @@ const CONFIG = {
     concrete:  { name: 'Beton',   icon: '🧱', price: 38,  color: '#6f7b86' },
     milk:      { name: 'Milch',   icon: '🥛', price: 4,   color: '#fbfbf4' },
     butter:    { name: 'Butter',  icon: '🧈', price: 30,  color: '#f2d15c' },
+    // Region 2: Nordufer & Hinterland
+    hops:       { name: 'Hopfen',      icon: '🌿', price: 4,   color: '#8cc63f' },
+    beer:       { name: 'Bier',        icon: '🍺', price: 55,  color: '#e9b03b' },
+    grapes:     { name: 'Trauben',     icon: '🍇', price: 6,   color: '#7b4f9e' },
+    wine:       { name: 'Wein',        icon: '🍷', price: 80,  color: '#9c2f45' },
+    apples:     { name: 'Äpfel',       icon: '🍎', price: 3,   color: '#d9452f' },
+    cider:      { name: 'Most',        icon: '🧃', price: 36,  color: '#e8b04a' },
+    brandy:     { name: 'Apfelbrand',  icon: '🥃', price: 260, color: '#c9862f' },
+    fish:       { name: 'Felchen',     icon: '🐟', price: 5,   color: '#9fb8c8' },
+    smokedfish: { name: 'Räucherfisch', icon: '🍢', price: 38, color: '#b0703a' },
   },
   // field = auf welchem Feldtyp; in = Eingang pro Einheit; cycle = Sekunden auf Stufe 1
   buildings: {
     market:   { name: 'Marktplatz',  icon: '🏰', field: 'town', upBase: 150 },
-    balloon:  { name: 'Ballonstation', icon: '🎈', field: 'plot', build: 250, upBase: 400, unique: true, wall: '#f6e7d0', roof: '#e8735a',
+    hangar:   { name: 'Luftschiffhalle', icon: '🛫', field: 'hangar', noUpgrade: true },
+    ferry:    { name: 'Fährstation', icon: '⛴️', field: 'water', build: 1500, upBase: 2000, max: 3, bonus: [0.06, 0.09, 0.12, 0.16, 0.2, 0.25],
+                desc: 'Fähre ans andere Ufer: neue Märkte, höhere Preise für alle Waren.' },
+    balloon:  { name: 'Ballonstation', icon: '🎈', field: 'plot', build: 250, upBase: 400, max: 1, wall: '#f6e7d0', roof: '#e8735a',
                 desc: 'Belädt Heißluftballons mit Waren. Starts bringen Münzen, Seeperlen und decken Nebel auf.' },
     lumber:   { name: 'Holzfäller',  icon: '🪓', field: 'forest',  out: 'wood',   cycle: 3, upBase: 40 },
     quarry:   { name: 'Kieswerk',    icon: '⛏️', field: 'gravel',  out: 'gravel', cycle: 4, upBase: 60 },
@@ -317,6 +332,16 @@ const CONFIG = {
     sawmill:  { name: 'Sägewerk',    icon: '🪚', field: 'plot', in: { wood: 2 },   out: 'planks',    cycle: 8,  build: 80,   upBase: 150, wall: '#e8c99a', roof: '#9c5b34' },
     concrete: { name: 'Betonwerk',   icon: '🏭', field: 'plot', in: { gravel: 3 }, out: 'concrete',  cycle: 10, build: 300,  upBase: 500, wall: '#d5dade', roof: '#5d6b78' },
     joinery:  { name: 'Schreinerei', icon: '🪑', field: 'plot', in: { planks: 2 }, out: 'furniture', cycle: 16, build: 1200, upBase: 2500, wall: '#f3e0c4', roof: '#6f4a8e' },
+    // Region 2
+    hopfarm:    { name: 'Hopfenbauer',  icon: '🌿', field: 'hopgarden',  out: 'hops',   cycle: 4, upBase: 90 },
+    vintner:    { name: 'Winzer',       icon: '🍇', field: 'vineyard',   out: 'grapes', cycle: 5, upBase: 130 },
+    applefarm:  { name: 'Obstbauer',    icon: '🍎', field: 'orchard',    out: 'apples', cycle: 3, upBase: 70 },
+    fishery:    { name: 'Fischer',      icon: '🎣', field: 'fishground', out: 'fish',   cycle: 4, upBase: 110 },
+    press:      { name: 'Mosterei',     icon: '🧃', field: 'plot', in: { apples: 3 }, out: 'cider',      cycle: 8,  build: 160,  upBase: 260,  wall: '#f5e6c8', roof: '#c0503f', accent: '#e8b04a' },
+    smokehouse: { name: 'Räucherei',    icon: '🔥', field: 'plot', in: { fish: 2 },   out: 'smokedfish', cycle: 10, build: 420,  upBase: 650,  wall: '#cdb59a', roof: '#4b3a2a', accent: '#8a5a33', smoky: true },
+    brewery:    { name: 'Brauerei',     icon: '🍺', field: 'plot', in: { hops: 3 },   out: 'beer',       cycle: 12, build: 900,  upBase: 1400, wall: '#f0dcb4', roof: '#2f6f4a', accent: '#a0703f' },
+    winery:     { name: 'Weinkellerei', icon: '🍷', field: 'plot', in: { grapes: 3 }, out: 'wine',       cycle: 15, build: 2200, upBase: 3200, wall: '#efe4d2', roof: '#7a2f45', accent: '#7b4f9e' },
+    distillery: { name: 'Brennerei',    icon: '🥃', field: 'plot', in: { cider: 2 },  out: 'brandy',     cycle: 20, build: 6000, upBase: 9000, wall: '#e6d3b0', roof: '#5d6b78', accent: '#c9862f' },
   },
 
   fieldTypes: {
@@ -325,7 +350,13 @@ const CONFIG = {
     gravel:  { name: 'Kiesgrube', desc: 'Rohstoff: Kies',                         top: '#d9cdb4', side: '#b0a283', icon: '⛰️', producer: 'quarry' },
     pasture: { name: 'Weide',     desc: 'Rohstoff: Milch',                        top: '#a6dc6e', side: '#73b043', icon: '🐄', producer: 'farm' },
     plot:    { name: 'Bauplatz',  desc: 'Platz für einen Verarbeitungsbetrieb.',  top: '#cfe7a8', side: '#98bf6c', icon: '🏗️' },
-    water:   { name: 'See',       desc: 'Fischerei und Fähren gibt es ab Region 2 (Nordufer).', top: '#7cc3e6', side: '#4f97bd', icon: '🌊' },
+    water:   { name: 'See',       desc: 'Fischerei und Fähren gibt es ab Region 2 (Nordufer).', top: '#7cc3e6', side: '#4f97bd', icon: '🌊', water: true },
+    hangar:  { name: 'Luftschiffplatz', desc: 'Hier erscheint die Luftschiffhalle, sobald alle anderen Felder der Region frei sind.', top: '#dfe6d2', side: '#aab79a', icon: '🛫', producer: 'hangar' },
+    // Region 2
+    hopgarden:  { name: 'Hopfengarten', desc: 'Rohstoff: Hopfen',  top: '#9fd27a', side: '#6ea64a', icon: '🌿', producer: 'hopfarm' },
+    vineyard:   { name: 'Weinberg',     desc: 'Rohstoff: Trauben', top: '#c4d98a', side: '#93a95a', icon: '🍇', producer: 'vintner' },
+    orchard:    { name: 'Obstgarten',   desc: 'Rohstoff: Äpfel',   top: '#93cf6a', side: '#64a03e', icon: '🍎', producer: 'applefarm' },
+    fishground: { name: 'Fischgrund',   desc: 'Rohstoff: Felchen. Boote bringen den Fang über die Bojen an Land.', top: '#6fb9df', side: '#4a8fb6', icon: '🐟', producer: 'fishery', water: true },
   },
   fog: { top: '#e9eef3', side: '#c3ccd5', puff: '#f7f9fb', edge: '#d6dee6' },
   square: { path: '#e6d3a8', road: '#c9b48a', fog: '#dde4ea', grass: '#b9dd8a' },
@@ -335,7 +366,7 @@ const CONFIG = {
       id: 'oberschwaben',
       name: 'Oberschwaben',
       bg: ['#bfe3f2', '#dff0e4'],
-      // Legende: T=Altstadt  W=Wald  K=Kiesgrube  M=Weide  B=Bauplatz  ~=See  .=kein Feld
+      // Legende: T=Altstadt  W=Wald  K=Kiesgrube  M=Weide  B=Bauplatz  ~=See  L=Luftschiffplatz  .=kein Feld
       map: [
         '..WWW...',
         '.WWBWK..',
@@ -344,7 +375,7 @@ const CONFIG = {
         '.MMBWBKW',
         '.MBBWBW.',
         '..M~~WW.',
-        '..MB~B..',
+        '.LMB~B..',
         '...MM...',
       ],
       startUnlocked: ['T'],
@@ -373,14 +404,58 @@ const CONFIG = {
         { t: 'unlock', n: 25, text: 'Schalte 25 Felder frei', pearls: 4 },
         { t: 'launch', n: 4, text: 'Starte 4 Heißluftballons', pearls: 5 },
         { t: 'produce', g: 'furniture', n: 25, text: 'Stelle 25 Möbel her', pearls: 5 },
-        { t: 'all', text: 'Erkunde ganz Oberschwaben', pearls: 5 },
+        { t: 'all', text: 'Erkunde ganz Oberschwaben', tip: 'Dann erscheint die Luftschiffhalle.', pearls: 5 },
       ],
+      // Luftschiff: Ladung für den Flug zur nächsten Region, Seeperlen-Belohnung beim Abflug
+      airship: { need: { furniture: 15, concrete: 25, butter: 30 }, pearls: 15 },
+    },
+    {
+      id: 'nordufer',
+      name: 'Nordufer & Hinterland',
+      intro: 'Hafenstadt, Hopfengärten, Weinberge über dem See und Obstwiesen. Auf dem Wasser warten Felchen, Bojen weisen den Booten den Weg. Fährstationen bringen deine Waren auf neue Märkte am anderen Ufer.',
+      bg: ['#b9def0', '#e3efd9'],
+      // Legende: T=Hafenstadt  P=Hopfengarten  R=Weinberg  A=Obstgarten  F=Fischgrund  ~=offener See (Fähre)  B=Bauplatz  L=Luftschiffplatz
+      map: [
+        '...RRPP..',
+        '..RRPPPA.',
+        '.LRBTBAA.',
+        '.BBBABAB.',
+        'PPB~~BAB.',
+        '.FF~~FF~.',
+        '..F~~~F~.',
+        '...F~F...',
+      ],
+      startUnlocked: ['T'],
+      startCoins: 150,
+      unlock: { base: 50, growth: 1.22 },
+      market: { cost: 3, tax: 3 },     // Marktplatz: Ausbaukosten und Gebühren × Faktor
+      buildings: ['press', 'smokehouse', 'brewery', 'winery', 'distillery', 'balloon', 'ferry'],
+      chains: [['apples', 'cider', 'brandy'], ['hops', 'beer'], ['grapes', 'wine'], ['fish', 'smokedfish']],
+      balloon: [{ apples: 25, hops: 15 }, { cider: 10, fish: 20 }, { beer: 6, grapes: 20 }, { smokedfish: 8, cider: 12 }, { wine: 4, beer: 8 }, { brandy: 2, wine: 6 }],
+      goals: [
+        { t: 'unlock', n: 1, text: 'Schalte ein Feld frei', tip: 'Hopfengarten und Obstgarten liegen direkt an der Hafenstadt.', coins: 80, pearls: 1 },
+        { t: 'build', k: 'press', n: 1, text: 'Baue eine Mosterei', tip: 'Aus Äpfeln wird Most.', pearls: 2 },
+        { t: 'unlock', n: 6, text: 'Schalte 6 Felder frei', pearls: 2 },
+        { t: 'build', k: 'smokehouse', n: 1, text: 'Baue eine Räucherei', tip: 'Felchen vom Fischgrund kommen per Boot über die Bojen.', pearls: 2 },
+        { t: 'build', k: 'balloon', n: 1, text: 'Baue eine Ballonstation', pearls: 2 },
+        { t: 'build', k: 'ferry', n: 1, text: 'Baue eine Fährstation', tip: 'Auf offenem See: neue Märkte am anderen Ufer, höhere Preise für alle Waren.', pearls: 3 },
+        { t: 'build', k: 'brewery', n: 1, text: 'Baue eine Brauerei', pearls: 3 },
+        { t: 'level', k: 'market', lvl: 3, n: 1, text: 'Baue den Marktplatz auf Stufe 3', pearls: 3 },
+        { t: 'launch', n: 3, text: 'Starte 3 Heißluftballons', pearls: 4 },
+        { t: 'build', k: 'winery', n: 1, text: 'Baue eine Weinkellerei', pearls: 4 },
+        { t: 'earn', n: 100000, text: 'Verdiene 100 Tsd. Münzen', pearls: 4 },
+        { t: 'build', k: 'distillery', n: 1, text: 'Baue eine Brennerei', tip: 'Apfelbrand ist die wertvollste Ware am Nordufer.', pearls: 5 },
+        { t: 'unlock', n: 30, text: 'Schalte 30 Felder frei', pearls: 5 },
+        { t: 'produce', g: 'brandy', n: 20, text: 'Brenne 20 Flaschen Apfelbrand', pearls: 6 },
+        { t: 'all', text: 'Erkunde das ganze Nordufer', tip: 'Dann erscheint die Luftschiffhalle.', pearls: 6 },
+      ],
+      airship: { need: { brandy: 12, wine: 25, beer: 40 }, pearls: 25 },
     },
   ],
 
   quotes: ['Schaffe, schaffe, Häusle baue …', 'Felder werden vermessen …', 'Der Nebel zieht übers Schwäbische Meer …'],
 };
-const TYPE_BY_CHAR = { T: 'town', W: 'forest', K: 'gravel', M: 'pasture', B: 'plot', '~': 'water' };
+const TYPE_BY_CHAR = { T: 'town', W: 'forest', K: 'gravel', M: 'pasture', B: 'plot', '~': 'water', L: 'hangar', P: 'hopgarden', R: 'vineyard', A: 'orchard', F: 'fishground' };
 
 /* =====================================================================
  * 2. UTILS – Format, Mathe, Geometrie
@@ -444,12 +519,14 @@ const world = {     // Laufzeit, aus state + CONFIG abgeleitet
   town: null,
   procs: [], prods: [],      // aktive Verarbeitungsbetriebe / Rohstoffbetriebe
   station: null,             // Feld mit Ballonstation
+  hangar: null,              // Feld mit Luftschiffhalle
+  ferryMult: 1,              // Preisfaktor durch Fährstationen
   procReserve: {},           // Ware → Menge, die Verarbeiter für ihre nächste Charge brauchen
   reserve: {},               // procReserve + offene Ballon-Ladung (je Tick aktualisiert)
   pathCache: new Map(),
   income: 0,                 // geglättetes Einkommen/s (Anzeige)
 };
-const fx = { fogClear: new Map(), popups: [], dots: [], levelUp: new Map(), balloons: [] };
+const fx = { fogClear: new Map(), popups: [], dots: [], levelUp: new Map(), balloons: [], flight: null, fadeIn: 0 };
 let selected = null; // { kind:'oct'|'sq', ref }
 
 // Neuer Spielstand. regionIndex/keep: beim Regionswechsel bleiben Seeperlen, Upgrades usw. erhalten
@@ -472,6 +549,7 @@ function newState(regionIndex = 0, keep = null) {
     globalUpgrades: {},      // "speed:wood" | "price:wood" | "offline" | "storage" | "startCoins" → Stufe (bleibt)
     goals: { claimed: [] },  // abgeholte Ziel-IDs der Region
     balloon: { fill: {}, launches: 0, load: true, t: 0 },
+    airship: { fill: {}, load: true, t: 0 },                              // ab M4, pro Region
     lifetime: { earned: 0, pearls: 0, launches: 0, regions: 0 },          // bleibt
   };
   if (keep) for (const k of ['pearls', 'globalUpgrades', 'settings', 'lifetime']) s[k] = keep[k];
@@ -536,8 +614,9 @@ function buildWorld() {
     if (state.market.sell[g] === undefined) state.market.sell[g] = true;
     if (!(state.inventory[g] >= 0)) state.inventory[g] = 0;
   }
-  fx.dots = []; fx.popups = []; fx.fogClear.clear(); fx.levelUp.clear();
+  fx.dots = []; fx.popups = []; fx.fogClear.clear(); fx.levelUp.clear(); fx.balloons = [];
   refreshWorld();
+  checkRegionComplete(true); // ältere Spielstände: Halle nachträglich aufstellen
 }
 
 function ensureProducer(o) {
@@ -547,10 +626,12 @@ function ensureProducer(o) {
 
 // Nach jeder Änderung an Feldern/Gebäuden: Listen, Reserven und Wege neu bestimmen
 function refreshWorld() {
-  world.procs = []; world.prods = []; world.station = null;
+  world.procs = []; world.prods = []; world.station = null; world.hangar = null; world.ferryMult = 1;
   for (const o of world.octs) {
     if (!o.unlocked || !o.b) continue;
     if (o.b.k === 'balloon') world.station = o;
+    if (o.b.k === 'hangar') world.hangar = o;
+    if (o.b.k === 'ferry') world.ferryMult += CONFIG.buildings.ferry.bonus[o.b.l - 1];
     const d = def(o.b);
     if (!d.out) continue;
     (d.in ? world.procs : world.prods).push(o);
@@ -567,6 +648,7 @@ function refreshWorld() {
 function updateReserve() {
   const r = Object.assign({}, world.procReserve);
   if (world.station) addCargoReserve(r, state.balloon, balloonNeed());
+  if (airshipLoading()) addCargoReserve(r, state.airship, world.region.airship.need);
   const cap = storageCap();
   for (const g in r) r[g] = Math.min(r[g], cap);
   world.reserve = r;
@@ -594,22 +676,30 @@ const cycleTime = b => def(b).cycle / (CONFIG.levels.speed[b.l - 1] * (def(b).ou
 const batchSize = b => CONFIG.levels.yield[b.l - 1];
 const marketLevel = () => (world.town && world.town.b ? world.town.b.l : 1);
 const marketMult = () => 1 + CONFIG.market.bonus[marketLevel() - 1];
-const taxRate = () => CONFIG.market.tax[marketLevel() - 1];
-const sellPrice = g => CONFIG.goods[g].price * marketMult() * priceMult(g);
-const upgradeCost = b => Math.ceil(def(b).upBase * Math.pow(CONFIG.levels.costGrowth, b.l - 1));
+const regionMarket = () => world.region.market || { cost: 1, tax: 1 };
+const taxRate = () => CONFIG.market.tax[marketLevel() - 1] * regionMarket().tax;
+const sellPrice = g => CONFIG.goods[g].price * marketMult() * priceMult(g) * world.ferryMult;
+const upgradeCost = b => Math.ceil(def(b).upBase * Math.pow(CONFIG.levels.costGrowth, b.l - 1) * (b.k === 'market' ? regionMarket().cost : 1));
 const countKind = k => world.octs.filter(o => o.b && o.b.k === k).length;
-const buildCost = k => (CONFIG.buildings[k].unique && countKind(k) ? Infinity : Math.ceil(CONFIG.buildings[k].build * Math.pow(CONFIG.buildGrowth, countKind(k))));
+const atMax = k => CONFIG.buildings[k].max !== undefined && countKind(k) >= CONFIG.buildings[k].max;   // max = Höchstzahl pro Region
+const buildCost = k => (atMax(k) ? Infinity : Math.ceil(CONFIG.buildings[k].build * Math.pow(CONFIG.buildGrowth, countKind(k))));
 const regionProduces = g => world.octs.some(o => o.unlocked && o.b && def(o.b).out === g);
 const regionGoods = () => world.region.chains.flat();
 
-const unlockedCount = () => world.octs.filter(o => o.unlocked).length;
+// Luftschiffplatz zählt nicht als normales Feld
+const isHangarField = o => o.type === 'hangar';
+const unlockedCount = () => world.octs.filter(o => o.unlocked && !isHangarField(o)).length;
+const fieldCount = () => world.octs.filter(o => !isHangarField(o)).length;
 const startCount = () => world.octs.filter(o => o.startField).length;
 function unlockCost() {
   const n = Math.max(0, unlockedCount() - startCount()), U = world.region.unlock;
   return Math.ceil(U.base * Math.pow(U.growth, n));
 }
-const isUnlockable = o => !o.unlocked && o.nOct.some(n => n && n.unlocked);
-const allUnlocked = () => world.octs.every(o => o.unlocked);
+const isUnlockable = o => !o.unlocked && !isHangarField(o) && o.nOct.some(n => n && n.unlocked);
+const allUnlocked = () => world.octs.every(o => o.unlocked || isHangarField(o));
+/* --- Luftschiff --- */
+const nextRegion = () => CONFIG.regions[state.regionIndex + 1] || null;
+const airshipLoading = () => !!(world.hangar && world.region.airship && nextRegion());
 
 /* --- Ballon --- */
 function balloonNeed() {
@@ -637,7 +727,7 @@ function goalProgress(g) {
   const kindAt = (k, lvl) => world.octs.filter(o => o.unlocked && o.b && o.b.k === k && o.b.l >= lvl).length;
   switch (g.t) {
     case 'unlock': return [unlockedCount() - startCount(), g.n];
-    case 'all': return [unlockedCount(), world.octs.length];
+    case 'all': return [unlockedCount(), fieldCount()];
     case 'level': return [kindAt(g.k, g.lvl), g.n];
     case 'build': return [kindAt(g.k, 1), g.n];
     case 'produce': return [Math.floor(state.stats.produced[g.g] || 0), g.n];
@@ -654,7 +744,7 @@ function openGoals() {
 }
 function squareKind(sq) {
   const un = sq.nOct.filter(o => o && o.unlocked).length;
-  const water = sq.nOct.filter(o => o && o.type === 'water').length;
+  const water = sq.nOct.filter(o => o && CONFIG.fieldTypes[o.type].water).length;
   if (un === 0) return 'fog';
   if (water >= 2) return 'buoy';
   if (un >= 2) return 'road';
@@ -683,10 +773,48 @@ function revealField(o, t) {
   fx.fogClear.set(o.id, t);
   checkRegionComplete();
 }
-function checkRegionComplete() {
-  if (state.stats.regionDone || !allUnlocked()) return;
+// Alle Felder frei → Luftschiffhalle erscheint (silent: beim Laden ohne Dialog)
+function checkRegionComplete(silent) {
+  if (!allUnlocked()) return;
+  const h = world.octs.find(o => isHangarField(o) && !o.unlocked);
+  if (h) {
+    state.fields[h.id].u = 1;
+    ensureProducer(h);
+    refreshWorld();
+    if (!silent) fx.fogClear.set(h.id, performance.now() + CONFIG.fogClearMs * 0.6);
+  }
+  if (state.stats.regionDone) return;
   state.stats.regionDone = true;
-  setTimeout(showRegionDone, CONFIG.fogClearMs);
+  if (!silent) setTimeout(showRegionDone, CONFIG.fogClearMs * 1.6);
+}
+// Abflug: Animation, danach neue Region (Prestige)
+function tryLaunchAirship() {
+  const h = world.hangar, next = nextRegion();
+  if (!h || !next || fx.flight || !cargoFull(state.airship, world.region.airship.need)) return false;
+  const pearls = world.region.airship.pearls || 0;
+  save();
+  closeSheet(); closeModal();
+  // Spielstand wechselt erst nach der Animation; Abschluss per Timer, falls rAF pausiert (Tab im Hintergrund)
+  fx.flight = { x: h.cx, y: h.cy, t0: performance.now(), dur: CONFIG.airship.flightMs, done: () => startRegion(state.regionIndex + 1, pearls) };
+  setTimeout(finishFlight, CONFIG.airship.flightMs + 50);
+  sound.pling(440); setTimeout(() => sound.pling(660), 200); setTimeout(() => sound.pling(880), 400);
+  vibrate([40, 60, 40]);
+  return true;
+}
+// Neue Region beginnen: Seeperlen, globale Upgrades, Einstellungen und Lebenszeit-Werte bleiben
+function finishFlight() {
+  if (!fx.flight) return;
+  const done = fx.flight.done;
+  fx.flight = null;
+  done();
+}
+function startRegion(idx, pearlsReward) {
+  state.pearls += pearlsReward; state.lifetime.pearls += pearlsReward; state.lifetime.regions++;
+  startState(newState(idx, state));
+  centerCamera();
+  fx.fadeIn = performance.now();
+  save();
+  showRegionIntro(pearlsReward);
 }
 function tryLaunchBalloon() {
   const st = world.station;
@@ -846,6 +974,7 @@ function simTick(dt, silent) {
     }
   }
   if (world.station) loadCargo(state.balloon, balloonNeed(), CONFIG.balloon.rate[world.station.b.l - 1], dt);
+  if (airshipLoading()) loadCargo(state.airship, world.region.airship.need, CONFIG.airship.rate, dt);
   for (const g in CONFIG.goods) earned += sellSurplus(g); // z. B. nach Umschalten auf "Verkaufen"
   state.coins += earned;
   state.stats.earned += earned;
@@ -858,7 +987,7 @@ function catchUp(seconds) {
   const cap = offlineCapHours() * 3600;
   const sec = clamp(seconds, 0, cap);
   const coins0 = state.coins, prod0 = { ...state.stats.produced };
-  const step = CONFIG.offline.stepSeconds;
+  const step = Math.max(CONFIG.offline.stepSeconds, sec / CONFIG.offline.maxSteps);
   let left = sec;
   while (left > 1e-6) { const d = Math.min(step, left); simTick(d, true); left -= d; }
   const goods = {};
@@ -887,7 +1016,10 @@ function findSourcePath(o, g) {
   let path = null;
   if (found) {
     const pts = [];
-    for (let n = found; n; n = prev.get(nodeId(n))) pts.push([n.cx, n.cy, n.col !== undefined ? 0 : 1]);
+    for (let n = found; n; n = prev.get(nodeId(n))) {
+      const isOct = n.col !== undefined, wet = isOct ? !!CONFIG.fieldTypes[n.type].water : squareKind(n) === 'buoy';
+      pts.push([n.cx, n.cy, isOct ? 0 : 1, wet ? 1 : 0]);
+    }
     const cum = [0];
     for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
     path = { pts, cum, len: cum[cum.length - 1] };
@@ -1011,7 +1143,7 @@ function drawOct(o, now) {
   const clearT = fx.fogClear.get(o.id);
   let fogA = o.unlocked ? 0 : 1;
   if (clearT !== undefined) {
-    const t = (now - clearT) / CONFIG.fogClearMs;
+    const t = Math.max(0, (now - clearT) / CONFIG.fogClearMs); // Startzeit kann in der Zukunft liegen (verzögertes Aufdecken)
     if (t >= 1) fx.fogClear.delete(o.id); else fogA = 1 - easeOut(t);
   }
   const p = o.poly;
@@ -1031,7 +1163,7 @@ function drawOct(o, now) {
     if (o.b) drawBuildingOverlay(o, now);
     const lu = fx.levelUp.get(o.id);
     if (lu !== undefined) {
-      const t = (now - lu) / 700;
+      const t = Math.max(0, (now - lu) / 700);
       if (t >= 1) fx.levelUp.delete(o.id);
       else {
         ctx.save(); ctx.globalAlpha = 1 - t;
@@ -1068,6 +1200,13 @@ function drawFog(o, now, a) {
   }
   ctx.restore();
 
+  if (!o.unlocked && isHangarField(o) && z > 0.35) {
+    const x = sx(o.cx), y = sy(o.cy) - 4 * z, fs = Math.max(9, 10 * z);
+    ctx.font = `700 ${fs}px -apple-system, system-ui, sans-serif`;
+    const label = 'Luftschiffhalle', w = ctx.measureText(label).width + fs * 1.4, h = fs * 1.7;
+    ctx.fillStyle = 'rgba(255,255,255,.85)'; roundRect(x - w / 2, y - h / 2, w, h, h / 2); ctx.fill();
+    ctx.fillStyle = '#6b7f90'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, x, y + 0.5);
+  }
   if (!o.unlocked && isUnlockable(o) && z > 0.35) {
     // Kosten-Plakette
     const cost = unlockCost();
@@ -1129,6 +1268,24 @@ function smoke(x, y, z, now) {
   }
 }
 const isRunning = b => !!(b && b.a && b.p < 1);
+// Luftschiff (generisch, eigene Form); (x,y) = Mitte, s = Länge
+function drawAirshipShape(x, y, s, now) {
+  const h = s * 0.26;
+  ctx.fillStyle = '#9aa7b3'; // Leitwerk
+  ctx.beginPath(); ctx.moveTo(x - s * 0.38, y); ctx.lineTo(x - s * 0.52, y - h * 0.9); ctx.lineTo(x - s * 0.44, y); ctx.lineTo(x - s * 0.52, y + h * 0.9); ctx.closePath(); ctx.fill();
+  const g = ctx.createLinearGradient(0, y - h / 2, 0, y + h / 2);
+  g.addColorStop(0, '#f4f7fa'); g.addColorStop(1, '#c4ced8');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, s / 2, h / 2, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = 'rgba(80,100,120,.25)'; ctx.lineWidth = Math.max(0.6, s * 0.01);
+  for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.ellipse(x + i * s * 0.09, y, s * 0.02, h / 2 * Math.sqrt(1 - Math.pow(i * 0.18, 2)), 0, 0, 7); ctx.stroke(); }
+  ctx.fillStyle = '#2f7fb5'; ctx.fillRect(x - s * 0.3, y - h * 0.06, s * 0.6, h * 0.12); // Zierstreifen
+  ctx.fillStyle = '#e8eef3'; roundRect(x - s * 0.1, y + h * 0.42, s * 0.2, h * 0.32, h * 0.1); ctx.fill(); // Gondel
+  ctx.fillStyle = '#7fb6d8'; for (let i = 0; i < 3; i++) ctx.fillRect(x - s * 0.075 + i * s * 0.055, y + h * 0.5, s * 0.035, h * 0.12);
+  if (now !== undefined) { // Propeller
+    const a = Math.abs(Math.sin(now / 40)) * h * 0.35;
+    ctx.fillStyle = '#6b7f90'; ctx.fillRect(x - s * 0.47, y - a, Math.max(1, s * 0.012), a * 2);
+  }
+}
 // Heißluftballon; (x,y) = Korbunterkante, s = Größe, inf = Füllung 0..1
 function drawBalloonShape(x, y, s, inf, colors = ['#e8735a', '#f4b740']) {
   const r = s * (0.45 + 0.55 * inf), cy = y - s * 0.55 - r;
@@ -1221,6 +1378,66 @@ function drawDecor(o, now) {
       flag(x0, y0 - 36 * z, z, now, L >= 6 ? '#f2b631' : '#e8573f');
       break;
     }
+    case 'hangar': {
+      // Luftschiffhalle mit Tonnendach; das Luftschiff schwebt darüber, wenn es beladen wird
+      const hw = 46 * z, hh = 16 * z, bx = x0, by = y0 + 14 * z;
+      ctx.fillStyle = '#b8c3cc'; ctx.beginPath(); ctx.moveTo(bx + hw / 2, by); ctx.lineTo(bx + hw / 2 + 10 * z, by - 6 * z); ctx.lineTo(bx + hw / 2 + 10 * z, by - hh - 6 * z); ctx.lineTo(bx + hw / 2, by - hh); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#dfe5ea'; ctx.fillRect(bx - hw / 2, by - hh, hw, hh);
+      ctx.beginPath(); ctx.ellipse(bx, by - hh, hw / 2, 12 * z, 0, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = '#c3ccd4'; ctx.beginPath(); ctx.ellipse(bx + 5 * z, by - hh - 3 * z, hw / 2, 12 * z, 0, Math.PI * 1.05, Math.PI * 1.9); ctx.lineTo(bx + hw / 2 + 10 * z, by - hh - 6 * z); ctx.fill();
+      ctx.fillStyle = '#5d6b78'; ctx.beginPath(); ctx.moveTo(bx - 12 * z, by); ctx.lineTo(bx - 12 * z, by - hh + 2 * z); ctx.ellipse(bx, by - hh + 2 * z, 12 * z, 8 * z, 0, Math.PI, 0); ctx.lineTo(bx + 12 * z, by); ctx.closePath(); ctx.fill();
+      if (!fx.flight) {
+        const need = world.region.airship && world.region.airship.need, frac = need ? cargoFrac(state.airship, need) : 0;
+        const ay = y0 - 22 * z - frac * 14 * z + Math.sin(now / 900) * 2 * z;
+        drawAirshipShape(x0 + 2 * z, ay, 50 * z, frac >= 1 ? now : undefined);
+        ctx.strokeStyle = 'rgba(75,58,42,.6)'; ctx.lineWidth = z; ctx.beginPath(); ctx.moveTo(x0 + 2 * z, ay + 9 * z); ctx.lineTo(x0 + 2 * z, by - hh - 10 * z); ctx.stroke();
+      }
+      break;
+    }
+    case 'hopgarden': {
+      // Hopfenstangen mit Ranken
+      const n = Math.min(9, 4 + L);
+      for (let i = 0; i < n; i++) {
+        const col = i % 3, row = Math.floor(i / 3);
+        const px = x0 + (col - 1) * 15 * z + (row % 2) * 4 * z, py = y0 + (row - 1) * 11 * z + 8 * z;
+        ctx.strokeStyle = '#8a5a33'; ctx.lineWidth = 1.2 * z; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, py - 20 * z); ctx.stroke();
+        ctx.fillStyle = '#4f9a33'; ctx.beginPath(); ctx.ellipse(px, py - 10 * z, 3.4 * z, 9 * z, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = '#a6d86a'; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(px + (k % 2 ? 2 : -2) * z, py - (5 + k * 5) * z, 1.6 * z, 0, 7); ctx.fill(); }
+      }
+      ctx.strokeStyle = 'rgba(90,70,50,.5)'; ctx.lineWidth = 0.7 * z; ctx.beginPath(); ctx.moveTo(x0 - 16 * z, y0 - 23 * z); ctx.lineTo(x0 + 16 * z, y0 - 23 * z); ctx.stroke();
+      if (L >= 3) house(x0 + 22 * z, y0 + 18 * z, 11 * z, 7 * z, '#f0dcb4', '#2f6f4a');
+      if (L >= 6) flag(x0 - 24 * z, y0 + 10 * z, z, now, '#f2b631');
+      break;
+    }
+    case 'vineyard': {
+      // Rebzeilen am Hang
+      const rows = Math.min(5, 2 + Math.ceil(L / 2));
+      for (let r = 0; r < rows; r++) {
+        const yy = y0 - 14 * z + r * 8 * z;
+        ctx.strokeStyle = '#6ea64a'; ctx.lineWidth = 3 * z; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(x0 - 24 * z + r * 2 * z, yy); ctx.lineTo(x0 + 22 * z - r * 2 * z, yy - 4 * z); ctx.stroke(); ctx.lineCap = 'butt';
+        ctx.fillStyle = '#7b4f9e';
+        for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(x0 + (-16 + k * 11 + (r % 2) * 4) * z, yy - 1 * z - k * z, 1.8 * z, 0, 7); ctx.fill(); }
+      }
+      if (L >= 3) house(x0 + 18 * z, y0 + 20 * z, 12 * z, 8 * z, '#efe4d2', '#7a2f45');
+      if (L >= 6) flag(x0 - 22 * z, y0 + 14 * z, z, now, '#f2b631');
+      break;
+    }
+    case 'orchard': {
+      // runde Apfelbäume
+      const pts = [[-.2, -.12], [.14, -.18], [-.02, .06], [.24, .1], [-.26, .18], [.06, .26], [.3, -.06]];
+      pts.slice(0, Math.min(pts.length, 2 + L)).forEach(([dx, dy], i) => {
+        const tx = x0 + dx * W * z, ty = y0 + dy * W * z * T + 6 * z, r = (6 + R(i) * 2) * z;
+        ctx.fillStyle = '#8a5a33'; ctx.fillRect(tx - z, ty - 6 * z, 2 * z, 6 * z);
+        ctx.fillStyle = '#4f9a33'; ctx.beginPath(); ctx.arc(tx, ty - 9 * z, r, 0, 7); ctx.fill();
+        ctx.fillStyle = '#6cbf4a'; ctx.beginPath(); ctx.arc(tx - r * 0.3, ty - 9 * z - r * 0.3, r * 0.55, 0, 7); ctx.fill();
+        ctx.fillStyle = '#d9452f'; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(tx + (R(i + k + 4) - 0.5) * r * 1.4, ty - 9 * z + (R(i + k + 9) - 0.5) * r * 1.2, 1.4 * z, 0, 7); ctx.fill(); }
+      });
+      if (L >= 4) { ctx.fillStyle = '#a0703f'; roundRect(x0 + 14 * z, y0 + 14 * z, 10 * z, 6 * z, z); ctx.fill(); ctx.fillStyle = '#d9452f'; ctx.beginPath(); ctx.arc(x0 + 19 * z, y0 + 14 * z, 2 * z, 0, 7); ctx.fill(); }
+      if (L >= 6) flag(x0 - 24 * z, y0 + 8 * z, z, now, '#f2b631');
+      break;
+    }
+    case 'fishground':
     case 'water': {
       ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.5 * z;
       for (let i = 0; i < 3; i++) {
@@ -1228,6 +1445,25 @@ function drawDecor(o, now) {
         const x = x0 + (i - 1) * 14 * z + Math.sin(ph) * 3 * z, y = y0 + (i - 1) * 7 * z;
         ctx.beginPath(); ctx.moveTo(x - 6 * z, y); ctx.quadraticCurveTo(x - 3 * z, y - 3 * z, x, y); ctx.quadraticCurveTo(x + 3 * z, y + 3 * z, x + 6 * z, y); ctx.stroke();
       }
+      if (o.type === 'fishground') {
+        // Fischerboote mit Netz, mehr Boote auf höherer Stufe; ab und zu springt ein Felchen
+        const nb = Math.min(3, 1 + Math.floor((L - 1) / 2));
+        for (let i = 0; i < nb; i++) {
+          const bx = x0 + (i - (nb - 1) / 2) * 18 * z + Math.sin(now / 2600 + i * 2 + o.col) * 5 * z, by = y0 + (i % 2 ? -6 : 6) * z;
+          ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 0.8 * z; ctx.setLineDash([2 * z, 2 * z]);
+          ctx.beginPath(); ctx.arc(bx - 8 * z, by + 2 * z, 5 * z, 0, Math.PI); ctx.stroke(); ctx.setLineDash([]);
+          ctx.fillStyle = '#c0503f'; ctx.beginPath(); ctx.moveTo(bx - 6 * z, by); ctx.lineTo(bx + 6 * z, by); ctx.lineTo(bx + 4 * z, by + 3 * z); ctx.lineTo(bx - 4 * z, by + 3 * z); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = '#fff'; ctx.fillRect(bx - 1.5 * z, by - 4 * z, 4 * z, 4 * z);
+        }
+        const jt = (now / 1800 + o.col * 0.37 + o.row * 0.61) % 1;
+        if (jt < 0.25) {
+          const u = jt / 0.25, fxp = x0 + 14 * z + u * 8 * z, fyp = y0 - 8 * z - Math.sin(u * Math.PI) * 8 * z;
+          ctx.fillStyle = '#c9d6df'; ctx.beginPath(); ctx.ellipse(fxp, fyp, 3 * z, 1.4 * z, -0.6 + u * 1.2, 0, 7); ctx.fill();
+        }
+        if (L >= 6) flag(x0 + 24 * z, y0 + 4 * z, z, now, '#f2b631');
+        break;
+      }
+      if (o.b && o.b.k === 'ferry') { drawFerry(o, x0, y0, z, now, L); break; }
       // Segelboot
       const bx = x0 + Math.sin(now / 3000 + o.row) * 10 * z, by = y0 + 4 * z;
       ctx.fillStyle = '#8a5a33'; ctx.beginPath(); ctx.moveTo(bx - 7 * z, by); ctx.lineTo(bx + 7 * z, by); ctx.lineTo(bx + 5 * z, by + 3 * z); ctx.lineTo(bx - 5 * z, by + 3 * z); ctx.closePath(); ctx.fill();
@@ -1235,6 +1471,21 @@ function drawDecor(o, now) {
       break;
     }
   }
+}
+
+// Fährstation: Steg mit Anleger, Fähre pendelt; größer mit der Stufe
+function drawFerry(o, x0, y0, z, now, L) {
+  ctx.fillStyle = '#a0703f'; ctx.fillRect(x0 - 26 * z, y0 - 12 * z, 20 * z, 5 * z);
+  ctx.fillStyle = '#8a5a33'; for (let i = 0; i < 4; i++) ctx.fillRect(x0 - 25 * z + i * 6 * z, y0 - 8 * z, 1.5 * z, 5 * z);
+  house(x0 - 18 * z, y0 - 12 * z, 9 * z, 6 * z, '#fbf3e4', '#2f7fb5');
+  const ph = (Math.sin(now / 2200 + o.col) + 1) / 2, s = 1 + L * 0.08;
+  const fx0 = x0 - 6 * z + ph * 26 * z, fy0 = y0 + 2 * z + ph * 8 * z;
+  ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.beginPath(); ctx.ellipse(fx0 - 9 * z * s, fy0 + 3 * z, 5 * z, 1.5 * z, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#f4f7fa'; ctx.beginPath(); ctx.moveTo(fx0 - 10 * z * s, fy0); ctx.lineTo(fx0 + 10 * z * s, fy0); ctx.lineTo(fx0 + 8 * z * s, fy0 + 4 * z); ctx.lineTo(fx0 - 8 * z * s, fy0 + 4 * z); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#2f7fb5'; ctx.fillRect(fx0 - 9 * z * s, fy0 + 1.5 * z, 18 * z * s, 1.2 * z);
+  ctx.fillStyle = '#e8eef3'; ctx.fillRect(fx0 - 5 * z * s, fy0 - 5 * z, 10 * z * s, 5 * z);
+  ctx.fillStyle = '#e8573f'; ctx.fillRect(fx0 + 1 * z, fy0 - 9 * z, 2.5 * z, 4 * z);
+  if (L >= 6) flag(x0 - 26 * z, y0 - 12 * z, z, now, '#f2b631');
 }
 
 // Verarbeitungsbetriebe: Grundform je Art, wächst sichtbar mit der Stufe
@@ -1302,6 +1553,18 @@ function drawFactory(o, x0, y0, z, now) {
       }
       break;
     }
+    default: {
+      // Halle mit Fässern/Kisten in der Akzentfarbe
+      house(bx, by, 24 * s, 14 * s, d.wall, d.roof);
+      ctx.fillStyle = shade(d.accent || '#a0703f', 0.4); ctx.fillRect(bx - 8 * s, by - 10 * s, 7 * s, 5 * s);
+      for (let i = 0; i < 2 + (L >= 4 ? 1 : 0) + (L >= 6 ? 1 : 0); i++) {
+        const kx = x0 + (15 + (i % 2) * 7) * z, ky = y0 + (17 - Math.floor(i / 2) * 6) * z;
+        ctx.fillStyle = d.accent || '#a0703f'; ctx.beginPath(); ctx.ellipse(kx, ky - 3 * z, 3 * z, 3.6 * z, 0, 0, 7); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 0.7 * z; ctx.beginPath(); ctx.moveTo(kx - 3 * z, ky - 3 * z); ctx.lineTo(kx + 3 * z, ky - 3 * z); ctx.stroke();
+      }
+      if (d.smoky && run && L < 4) smoke(bx + 4 * s, by - 18 * s, z, now);
+      break;
+    }
   }
   if (L >= 4) { // Schornstein
     const cx = bx + 8 * s, cy = by - 20 * s;
@@ -1317,13 +1580,13 @@ function drawBuildingOverlay(o, now) {
   const b = o.b, d = def(b), x0 = sx(o.cx), y0 = sy(o.cy);
   // Stufen-Punkte am unteren Rand
   const py = y0 + 28 * z * T + 4 * z;
-  for (let i = 0; i < CONFIG.levels.max; i++) {
+  if (!d.noUpgrade) for (let i = 0; i < CONFIG.levels.max; i++) {
     ctx.fillStyle = i < b.l ? '#f2b631' : 'rgba(255,255,255,.75)';
     ctx.beginPath(); ctx.arc(x0 + (i - 2.5) * 6 * z, py, 2.1 * z, 0, 7); ctx.fill();
   }
   const rx = x0 + 30 * z, ry = y0 + 6 * z, r = 6 * z;
-  if (b.k === 'balloon') {
-    const frac = cargoFrac(state.balloon, balloonNeed());
+  if (b.k === 'balloon' || (b.k === 'hangar' && airshipLoading())) {
+    const frac = b.k === 'balloon' ? cargoFrac(state.balloon, balloonNeed()) : cargoFrac(state.airship, world.region.airship.need);
     ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.beginPath(); ctx.arc(rx, ry, r + 1.5 * z, 0, 7); ctx.fill();
     if (frac >= 1) {
       const pulse = 1 + Math.sin(now / 200) * 0.12;
@@ -1361,6 +1624,13 @@ function drawDots(now) {
     const seg = cum[i] - cum[i - 1] || 1, t = clamp((dist - cum[i - 1]) / seg, 0, 1);
     const a = pts[i - 1], b = pts[i];
     const x = sx(lerp(a[0], b[0], t)), y = sy(lerp(a[1], b[1], t)) + lerp(a[2], b[2], t) * off - 3 * z;
+    if (a[3] && b[3]) { // Boot auf dem Wasser
+      const dir = b[0] >= a[0] ? 1 : -1;
+      ctx.fillStyle = '#8a5a33'; ctx.beginPath(); ctx.moveTo(x - 6 * z, y); ctx.lineTo(x + 6 * z, y); ctx.lineTo(x + 4 * z, y + 3 * z); ctx.lineTo(x - 4 * z, y + 3 * z); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(x - dir * z, y - 10 * z); ctx.lineTo(x + dir * 5 * z, y - 1 * z); ctx.lineTo(x - dir * z, y - 1 * z); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = d.color; ctx.beginPath(); ctx.arc(x - dir * 3.5 * z, y - 1.5 * z, 2.4 * z, 0, 7); ctx.fill();
+      continue;
+    }
     // kleiner Karren
     ctx.fillStyle = '#4b3a2a'; roundRect(x - 5 * z, y - 2 * z, 10 * z, 5 * z, 1.5 * z); ctx.fill();
     ctx.fillStyle = d.color; ctx.beginPath(); ctx.arc(x, y - 2.5 * z, 3.4 * z, 0, 7); ctx.fill();
@@ -1388,6 +1658,26 @@ function drawFlights(now) {
   }
 }
 
+// Abflug des Luftschiffs: steigt aus der Halle, fliegt über den See davon, Blende ins Weiße
+function drawAirshipFlight(now) {
+  const f = fx.flight;
+  if (f) {
+    const t = clamp((now - f.t0) / f.dur, 0, 1), z = cam.zoom;
+    const x0 = sx(f.x), y0 = sy(f.y) - 22 * z;
+    const rise = easeOut(Math.min(1, t * 2.5));
+    const x = x0 + Math.pow(t, 2) * vw * 1.1, y = y0 - rise * 50 * z - t * vh * 0.35;
+    const sc = 50 * z * (1 + t * 1.6);
+    ctx.fillStyle = 'rgba(30,50,70,' + (0.18 * (1 - t)) + ')'; ctx.beginPath(); ctx.ellipse(x, sy(f.y) + 10 * z, sc * 0.4, sc * 0.08, 0, 0, 7); ctx.fill();
+    drawAirshipShape(x, y, sc, now);
+    if (t > 0.65) { ctx.fillStyle = 'rgba(255,255,255,' + ((t - 0.65) / 0.35) + ')'; ctx.fillRect(0, 0, vw, vh); }
+  }
+  if (fx.fadeIn) {
+    const t = (now - fx.fadeIn) / CONFIG.airship.fadeMs;
+    if (t >= 1) fx.fadeIn = 0;
+    else { ctx.fillStyle = 'rgba(255,255,255,' + (1 - easeOut(Math.max(0, t))) + ')'; ctx.fillRect(0, 0, vw, vh); }
+  }
+}
+
 function addPopup(wx, wy, text, color) { fx.popups.push({ wx, wy, text, color, t0: performance.now() }); }
 function drawPopups(now) {
   fx.popups = fx.popups.filter(p => now - p.t0 < 1200);
@@ -1412,6 +1702,7 @@ function render(now) {
   drawDots(now);
   drawFlights(now);
   drawPopups(now);
+  drawAirshipFlight(now);
 }
 
 /* =====================================================================
@@ -1533,7 +1824,14 @@ function updateHUD() {
   // Ziel-Banner (Tutorial) und Hinweis-Punkte in der Leiste
   const og = openGoals(), first = og[0], claimable = og.some(x => x.done);
   const gb = $('goalBanner');
-  gb.classList.toggle('show', !!first);
+  gb.classList.toggle('show', !!first || airshipLoading());
+  if (!first && airshipLoading()) {
+    const A = world.region.airship, f = cargoFrac(state.airship, A.need), full = f >= 1;
+    gb.classList.toggle('done', full);
+    $('gbText').textContent = full ? 'Das Luftschiff ist startklar!' : 'Belade das Luftschiff';
+    $('gbSub').textContent = full ? 'Tippen, um nach ' + nextRegion().name + ' zu fliegen' : 'Ladung ' + pct(f) + ' % · Ziel: ' + nextRegion().name;
+    $('gbBar').style.width = pct(f) + '%';
+  }
   if (first) {
     const [a, b] = goalProgress(first.g);
     gb.classList.toggle('done', first.done);
@@ -1592,6 +1890,7 @@ function buildingStatus(o) {
     if (cargoFull(state.balloon, balloonNeed())) return ['ok', 'Der Ballon ist startklar!'];
     return state.balloon.load ? ['idle', 'Lädt Waren aus dem Lager …'] : ['bad', 'Umleiten ist aus – der Ballon wird nicht beladen.'];
   }
+  if (b.k === 'ferry') return ['ok', 'Die Fähre bringt deine Waren ans andere Ufer.'];
   if (!d.out) return ['ok', 'Der Markt verkauft deine Waren automatisch.'];
   if (d.in && !b.a) {
     const miss = Object.keys(d.in).filter(g => (state.inventory[g] || 0) < d.in[g]).map(g => CONFIG.goods[g].name).join(', ');
@@ -1601,8 +1900,47 @@ function buildingStatus(o) {
   return ['ok', (d.in ? 'Verarbeitet ' + b.a + '× · ' : 'Produziert · ') + (state.market.sell[d.out] ? 'Überschuss wird verkauft' : 'wird eingelagert')];
 }
 
+function openHangarSheet(o) {
+  const next = nextRegion(), A = world.region.airship;
+  const head = sheetHead('🛫', CONFIG.fieldTypes.hangar.top, 'Luftschiffhalle', world.region.name + ' ist erkundet');
+  if (!next || !A) {
+    openSheet(head + `<div class="sheet-body"><div class="note">Das Luftschiff ist bereit – aber die nächste Region (Allgäu & Lindau) wird gerade noch vermessen. Sie folgt mit einem späteren Update. Bis dahin kannst du hier weiter ausbauen, Ballons starten und Seeperlen sammeln.</div></div>
+      <button class="secbtn" id="sheetClose">${T_OK()}</button>`);
+    $('sheetClose').onclick = closeSheet;
+    return;
+  }
+  openSheet(head + `<div class="sheet-body">
+      <div class="note">Belade das Luftschiff und fliege über den See nach <b>${next.name}</b>. Dort beginnst du neu: Münzen, Felder und Gebäude bleiben hier. <b>Seeperlen und globale Upgrades nimmst du mit.</b></div>
+      <div class="cargo" id="airCargo"></div>
+      <div class="kv"><span>Belohnung beim Abflug</span><b>${A.pearls} Seeperlen</b></div>
+      <div class="row">Waren ans Luftschiff umleiten <button class="toggle ${state.airship.load ? 'on' : ''}" id="tAirLoad" aria-label="Luftschiff beladen"></button></div>
+    </div>
+    <button class="bigbtn" id="flyBtn" style="background:#2f7fb5;box-shadow:0 4px 0 #1d5a85">🛫 Abflug nach ${next.name}</button><div class="missing" id="flyMissing"></div>`);
+  $('tAirLoad').onclick = e => { state.airship.load = !state.airship.load; e.currentTarget.classList.toggle('on', state.airship.load); updateReserve(); save(); };
+  $('flyBtn').onclick = () => { sound.unlock(); openFlyConfirm(); };
+  sheetRefresh = () => {
+    const el = $('airCargo'); if (!el) return;
+    const full = cargoFull(state.airship, A.need);
+    el.innerHTML = `<div class="kv"><span>Ladung</span><b>${pct(cargoFrac(state.airship, A.need))} %</b></div>` + cargoRows(state.airship, A.need);
+    $('flyBtn').disabled = !full;
+    $('flyMissing').textContent = full ? '' : state.airship.load ? 'Das Luftschiff wird beladen …' : 'Umleiten ist aus.';
+  };
+  sheetRefresh();
+}
+function openFlyConfirm() {
+  const next = nextRegion();
+  openModal(`<h2>Abflug nach ${next.name}?</h2>
+    <p class="hint">Du verlässt ${world.region.name}. Münzen, Felder, Gebäude, Waren und Ziele beginnen in der neuen Region von vorn.</p>
+    <p class="hint">Du behältst: <b>${fmt(state.pearls)} Seeperlen</b> (+${world.region.airship.pearls}), alle globalen Upgrades und deine Einstellungen. Startkapital: <b>${fmt(next.startCoins + metaValue('startCoins'))} Münzen</b>.</p>
+    <button class="bigbtn" id="flyYes" style="background:#2f7fb5;box-shadow:0 4px 0 #1d5a85">🛫 Leinen los!</button>
+    <button class="secbtn" id="flyNo">Noch nicht</button>`);
+  $('flyYes').onclick = () => { if (!tryLaunchAirship()) closeModal(); };
+  $('flyNo').onclick = closeModal;
+}
+
 function openBuildingSheet(o) {
   const b = o.b, d = def(b), ft = CONFIG.fieldTypes[o.type], max = b.l >= CONFIG.levels.max;
+  if (b.k === 'hangar') return openHangarSheet(o);
   let body = stars(b.l);
   if (b.k === 'balloon') {
     const C = CONFIG.balloon;
@@ -1612,9 +1950,14 @@ function openBuildingSheet(o) {
     body += `<div class="cargo" id="balloonCargo"></div>`;
     body += `<div class="row">Waren an Ballon umleiten <button class="toggle ${state.balloon.load ? 'on' : ''}" id="tLoad" aria-label="Ballon beladen"></button></div>`;
     body += `<button class="bigbtn" id="launchBtn" style="background:#e8735a;box-shadow:0 4px 0 #c0503f">🎈 Ballon starten</button>`;
+  } else if (b.k === 'ferry') {
+    const B = d.bonus;
+    body += kv('Neue Märkte: Preise aller Waren', '+' + pct(B[b.l - 1]) + ' %' + (max ? '' : ` <span class="up">→ +${pct(B[b.l])} %</span>`));
+    body += kv('Alle Fähren zusammen', '+' + pct(world.ferryMult - 1) + ' %');
   } else if (!d.out) {
     const M = CONFIG.market;
-    body += kv('Marktgebühren', fmtRate(M.tax[b.l - 1]) + ' Münzen/s' + (max ? '' : ` <span class="up">→ ${fmtRate(M.tax[b.l])}</span>`));
+    const tm = regionMarket().tax;
+    body += kv('Marktgebühren', fmtRate(M.tax[b.l - 1] * tm) + ' Münzen/s' + (max ? '' : ` <span class="up">→ ${fmtRate(M.tax[b.l] * tm)}</span>`));
     body += kv('Verkaufsbonus auf alle Waren', '+' + pct(M.bonus[b.l - 1]) + ' %' + (max ? '' : ` <span class="up">→ +${pct(M.bonus[b.l])} %</span>`));
   } else {
     const n = batchSize(b), cyc = cycleTime(b), G = CONFIG.goods[d.out];
@@ -1677,7 +2020,8 @@ function openPlotSheet(o) {
     return () => {
       r();
       const d = CONFIG.buildings[k], h = $('hint_' + k); if (!h) return;
-      if (d.unique && countKind(k)) { h.className = 'warn'; h.textContent = 'Nur eine pro Region – schon gebaut.'; $('build_' + k).querySelector('.cost').textContent = '✓'; return; }
+      if (atMax(k)) { h.className = 'warn'; h.textContent = d.max === 1 ? 'Nur eine pro Region – schon gebaut.' : `Höchstens ${d.max} pro Region – alle gebaut.`; $('build_' + k).querySelector('.cost').textContent = '✓'; return; }
+      if (d.max > 1) { h.className = ''; h.textContent = `${countKind(k)} von ${d.max} gebaut`; return; }
       if (!d.in) { h.className = ''; h.textContent = ''; return; }
       const g = Object.keys(d.in)[0], ok = regionProduces(g);
       h.className = ok ? '' : 'warn'; h.textContent = ok ? 'Wert: ' + fmtRate(sellPrice(d.out)) + ' Münzen/Stück' : 'Braucht ' + CONFIG.goods[g].name + ' – noch kein Lieferant';
@@ -1688,6 +2032,12 @@ function openPlotSheet(o) {
 
 function openFogSheet(o) {
   const ft = CONFIG.fieldTypes[o.type];
+  if (isHangarField(o)) {
+    openSheet(sheetHead('☁️', CONFIG.fog.top, 'Luftschiffplatz', 'Noch im Nebel') +
+      `<div class="sheet-body"><div class="note">${ft.desc} Noch ${fieldCount() - unlockedCount()} Felder.</div></div><button class="secbtn" id="sheetClose">${T_OK()}</button>`);
+    $('sheetClose').onclick = closeSheet;
+    return;
+  }
   const can = isUnlockable(o);
   openSheet(sheetHead('☁️', CONFIG.fog.top, 'Unerforschtes Gebiet', can ? 'Darunter liegt: ' + ft.name : 'Noch zu weit weg') +
     `<div class="sheet-body"><div class="note">${can ? ft.desc : 'Schalte zuerst ein angrenzendes Feld frei.'}</div></div>
@@ -1849,7 +2199,7 @@ function openSettings() {
     <div class="row">Dialekt (Schwäbisch) <button class="toggle ${state.settings.dialect ? 'on' : ''}" id="tDialect" aria-label="Dialekt"></button></div>
     <button class="secbtn" id="exportBtn">Spielstand exportieren</button>
     <button class="secbtn" id="importBtn">Spielstand importieren</button>
-    ${debug ? `<button class="secbtn" id="debugCoins">Debug: +${fmt(CONFIG.debugCoins)} Münzen</button><button class="secbtn" id="debugPearls">Debug: +10 Seeperlen</button>` : ''}
+    ${debug ? `<button class="secbtn" id="debugCoins">Debug: +${fmt(CONFIG.debugCoins)} Münzen</button><button class="secbtn" id="debugPearls">Debug: +10 Seeperlen</button><button class="secbtn" id="debugRegion">Debug: Region abschließen</button>` : ''}
     <button class="secbtn danger" id="resetBtn">Spielstand zurücksetzen</button>
     <button class="secbtn" id="closeSettings">${T_OK()}</button>`);
   $('tSound').onclick = e => { state.settings.sound = !state.settings.sound; e.currentTarget.classList.toggle('on', state.settings.sound); save(); };
@@ -1859,6 +2209,13 @@ function openSettings() {
   if (debug) {
     $('debugCoins').onclick = () => { state.coins += CONFIG.debugCoins; updateHUD(); toast('+' + fmt(CONFIG.debugCoins) + ' Münzen'); };
     $('debugPearls').onclick = () => { state.pearls += 10; updateHUD(); toast('+10 Seeperlen'); };
+    $('debugRegion').onclick = () => {
+      closeModal();
+      for (const o of world.octs) if (!isHangarField(o)) { state.fields[o.id].u = 1; ensureProducer(o); }
+      refreshWorld(); checkRegionComplete();
+      if (world.region.airship) for (const g in world.region.airship.need) state.airship.fill[g] = world.region.airship.need[g];
+      save();
+    };
   }
   $('resetBtn').onclick = openResetConfirm;
   $('closeSettings').onclick = closeModal;
@@ -1921,12 +2278,25 @@ function showOffline(r) {
 }
 
 function showRegionDone() {
+  const next = nextRegion(), A = world.region.airship;
+  const need = A ? Object.keys(A.need).map(g => goodPill(g, A.need[g])).join(' ') : '';
   openModal(`<h2 class="center">${world.region.name} ist erkundet! 🎉</h2>
-    <p class="hint center">Alle Felder sind frei. Bald erscheint hier eine Luftschiffhalle, mit der du über den See zur nächsten Region fliegst (Meilenstein 4).</p>
-    <button class="bigbtn" id="doneOk">${T_OK()}</button>`);
-  $('doneOk').onclick = closeModal;
+    <p class="hint center">Alle Felder sind frei – die <b>Luftschiffhalle</b> ist erschienen.${next && A ? ` Belade das Luftschiff, um über den See nach <b>${next.name}</b> zu fliegen:` : ' Die nächste Region folgt mit einem späteren Update.'}</p>
+    ${next && need ? `<div class="io" style="justify-content:center">${need}</div>` : ''}
+    <button class="bigbtn" id="doneOk">${next && A ? 'Zur Halle' : T_OK()}</button>`);
+  $('doneOk').onclick = () => { closeModal(); if (world.hangar && next) { selected = { kind: 'oct', ref: world.hangar }; openHangarSheet(world.hangar); focusAboveSheet(world.hangar); } };
   sound.pling(660); setTimeout(() => sound.pling(880), 120); setTimeout(() => sound.pling(1320), 240);
   vibrate([30, 60, 30, 60, 60]);
+}
+
+function showRegionIntro(pearls) {
+  const R = world.region;
+  openModal(`<h2 class="center">Willkommen: ${R.name}</h2>
+    <p class="hint center">${R.intro || ''}</p>
+    ${pearls ? `<div class="big-num">${PEARL_SVG}+${pearls}</div><p class="hint center">Seeperlen für die Ankunft. Deine globalen Upgrades gelten auch hier.</p>` : ''}
+    <div class="io" style="justify-content:center">${R.chains.map(c => goodPill(c[c.length - 1])).join(' ')}</div>
+    <button class="bigbtn" id="introOk">Los geht's</button>`);
+  $('introOk').onclick = () => { closeModal(); sound.pling(990); };
 }
 
 let toastTimer = 0;
@@ -1948,6 +2318,7 @@ $('goalBanner').addEventListener('click', () => {
   sound.unlock();
   const first = openGoals()[0];
   if (first && first.done && claimGoal(first.i)) { toast('Belohnung: ' + rewardText(first.g)); updateHUD(); return; }
+  if (!first && world.hangar) { selected = { kind: 'oct', ref: world.hangar }; openHangarSheet(world.hangar); focusAboveSheet(world.hangar); return; }
   openGoalsModal();
 });
 
@@ -1990,6 +2361,8 @@ const MIGRATIONS = {
     s.saveVersion = 3;
     return s;
   },
+  // v3 → v4 (Luftschiff): airship ergänzt normalize(), die Halle stellt buildWorld() auf
+  3: s => { s.saveVersion = 4; return s; },
 };
 function migrate(s) {
   while (s.saveVersion < CONFIG.saveVersion) {
@@ -2007,7 +2380,8 @@ function normalize(s) {
   const base = newState(ri);
   s = Object.assign(base, s);
   s.regionIndex = ri;
-  for (const k of ['market', 'stats', 'settings', 'goals', 'balloon', 'lifetime']) s[k] = Object.assign(newState(ri)[k], s[k]);
+  for (const k of ['market', 'stats', 'settings', 'goals', 'balloon', 'airship', 'lifetime']) s[k] = Object.assign(newState(ri)[k], s[k]);
+  if (!s.airship.fill || typeof s.airship.fill !== 'object') s.airship.fill = {};
   if (!s.market.sell) s.market.sell = {};
   if (!s.balloon.fill || typeof s.balloon.fill !== 'object') s.balloon.fill = {};
   if (!Array.isArray(s.goals.claimed)) s.goals.claimed = [];
@@ -2095,6 +2469,7 @@ function frame(now) {
     clampCamera();
   }
 
+  if (fx.flight && now - fx.flight.t0 >= fx.flight.dur) finishFlight();
   hudTimer += dt; if (hudTimer > 0.2) { hudTimer = 0; updateHUD(); }
   saveTimer += dt; if (saveTimer > CONFIG.autosaveSeconds) { saveTimer = 0; save(); }
 

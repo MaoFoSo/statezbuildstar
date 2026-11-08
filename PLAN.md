@@ -107,6 +107,11 @@ Seit M3 (`saveVersion` 3):
 - `balloon: { fill: { ware: menge }, launches, load, t }` (pro Region)
 - `lifetime: { earned, pearls, launches, regions }` (bleibt)
 
+Seit M4 (`saveVersion` 4):
+
+- `airship: { fill, load, t }` (pro Region)
+- beim Regionswechsel: `newState(neueRegion, alterState)` übernimmt `pearls`, `globalUpgrades`, `settings`, `lifetime`
+
 Regeln:
 
 - **Migrationen**: `MIGRATIONS[v] = save => save'` werden der Reihe nach angewandt, bis `CONFIG.saveVersion` erreicht ist.
@@ -120,8 +125,8 @@ Regeln:
 | 1 | Raster & Steuerung: 4.8.8-Rendering, Pan/Pinch/Tap, exakter Hit-Test, Felder freischalten mit Nebel und Animation, Grund-UI (Topbar, Bottom-Bar, Bottom-Sheet), einfaches Speichern der freigeschalteten Felder | ✅ fertig |
 | 2 | Wirtschaft MVP: Oberschwaben mit 3 Ketten (Holz → Bretter → Möbel, Kies → Beton, Milch → Butter), 6 Ausbaustufen, Lager/Verkauf mit Schalter, Transportpunkte auf Wegen, Speichern/Laden/Export/Import, Offline-Ertrag mit Dialog | ✅ fertig |
 | 3 | Meta: globale Upgrades, Seeperlen, Ballonstation, Ziele/Tutorial, Lieferketten-Übersicht | ✅ fertig |
-| 4 | Luftschiff & Regionswechsel (Prestige), Region 2 Nordufer mit Wasser, Fähre, Booten | – |
-| 5+ | Regionen 3–6, Events (Föhn, Herbstnebel, Feste), Quadrat-Bonusfelder, Pfahlbauten, Dialekt, PWA (Manifest, Service Worker, Icons) | – |
+| 4 | Luftschiff & Regionswechsel (Prestige), Region 2 Nordufer mit Wasser, Fähre, Booten | ✅ fertig |
+| 5+ | **als Nächstes:** Regionen 3–6, Events (Föhn, Herbstnebel, Feste), Quadrat-Bonusfelder, Pfahlbauten, Dialekt, PWA (Manifest, Service Worker, Icons) | – |
 
 ### Hinweise zu Meilenstein 1
 
@@ -152,3 +157,20 @@ Regeln:
 - **Ballon**: Ladung = `region.balloon[launches % n] × needGrowth^launches` (gedeckelt auf den Lagerplatz). Belohnung hängt von Warenwert und Stationsstufe ab. Aufgedeckte Felder kosten nichts, zählen aber zu den freigeschalteten Feldern.
 - **Ziele**: datengetrieben in `region.goals` mit Typ `unlock|all|level|build|produce|earn|launch|gup`. `goalProgress()` liefert `[ist, soll]`. Das erste offene Ziel steht im Banner (Tutorial).
 - **Balancing**: Test-Bot (kauft jeweils das Günstigste, startet Ballons, holt Ziele ab, kauft das billigste globale Upgrade) braucht ca. 22 min für Oberschwaben, ohne Meta ca. 28 min. Menschen spielen deutlich langsamer, so bleibt das Ziel von 30–45 min realistisch.
+
+### Luftschiff & Regionen (Meilenstein 4)
+
+- **Luftschiffplatz** `L` im Kartenlayout: Feldtyp `hangar`, nicht freischaltbar und nicht in den Feldzählungen (`unlockedCount`, `fieldCount`). `checkRegionComplete()` deckt ihn auf, sobald alle anderen Felder frei sind, und stellt das Gebäude `hangar` hin.
+- **Luftschiff-Ladung**: `region.airship.need` über dieselbe Ladungslogik wie der Ballon (`loadCargo`, Reserve). Geladen wird nur, wenn es eine nächste Region gibt (`airshipLoading()`).
+- **Abflug** (`tryLaunchAirship`): Animation `fx.flight`; danach `startRegion()`, abgeschlossen per rAF oder Timer (falls der Tab im Hintergrund ist). Seeperlen werden erst bei der Ankunft gutgeschrieben, damit ein Reload während des Flugs nichts doppelt.
+- **Regionen-Config**: `map`, `startCoins`, `unlock`, `market` (Kosten-/Gebührenfaktor), `buildings` (baubar), `chains` (Lager, Upgrades, Lieferketten), `balloon`, `goals`, `airship`, `intro`.
+- **Wasser**: Feldtypen mit `water: true` (See, Fischgrund). Quadrate mit ≥ 2 Wasser-Nachbarn sind Bojen. Pfadpunkte tragen ein Wasser-Flag, Segmente zwischen zwei Wasserpunkten werden als Boot gezeichnet.
+- **Fähre**: Gebäude auf `water`, `max: 3`. `world.ferryMult = 1 + Σ bonus[Stufe]` wirkt in `sellPrice()`.
+- **Balancing Nordufer**: Freischalten `50 × 1,22^n`, Startkapital 150, Marktplatz ×3. Test-Bot: ca. 36 min (Oberschwaben ca. 22 min), also wie gewünscht länger.
+
+### Nächste Schritte (Meilenstein 5+)
+
+- Regionen 3–6 (Allgäu & Lindau mit Energie als neuer Ressourcenart, Vorarlberg, Thurgau & St. Gallen, Konstanz/Reichenau/Hegau mit Finale)
+- Events: Föhn (doppelte Ballonboni), Herbstnebel, Feste
+- Quadrat-Bonusfelder, Pfahlbauten, Dialekt-Texte
+- PWA: `manifest.json`, `sw.js`, Icons

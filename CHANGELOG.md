@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.4.0] – Meilenstein 4: Luftschiff & Regionswechsel
+
+### Neu
+- **Luftschiffhalle**: Sind alle Felder einer Region frei, zieht der Nebel vom Luftschiffplatz und die Halle erscheint (Dialog mit der benötigten Ladung)
+  - Das Luftschiff wird wie der Ballon aus dem Lager beladen (Umleiten an/aus); es steigt über der Halle auf, je voller es ist
+  - Oberschwaben: 15 Möbel, 25 Beton, 30 Butter
+- **Prestige / Regionswechsel**: Abflug mit Bestätigung, Flug-Animation über den See, Überblendung in die neue Region
+  - Seeperlen, globale Upgrades, Einstellungen und Lebenszeit-Werte bleiben, plus Seeperlen-Belohnung (15)
+  - Münzen, Felder, Gebäude, Waren, Ziele und Ballon beginnen von vorn; Startkapital-Upgrade wirkt jetzt
+  - Willkommensdialog der neuen Region
+- **Region 2: Nordufer & Hinterland** (47 Felder + Luftschiffplatz, See im Süden):
+  - Rohstoffe: Hopfen (Hopfengarten), Trauben (Weinberg), Äpfel (Obstgarten), Felchen (Fischgrund auf dem See)
+  - Ketten: Äpfel → Most (Mosterei) → Apfelbrand (Brennerei) · Hopfen → Bier (Brauerei) · Trauben → Wein (Weinkellerei) · Felchen → Räucherfisch (Räucherei)
+  - **Fährstationen** auf offenem See (max. 3, 6 Stufen): neue Märkte, +6 % bis +25 % auf alle Verkaufspreise je Fähre
+  - **Boote**: Transporte fahren über Fischgrund, offenen See und Bojen als Segelboote statt als Karren
+  - eigene Ballon-Ladungen, 15 Ziele, eigener Marktplatz-Faktor (Kosten und Gebühren ×3)
+  - neue prozedurale Grafik: Hopfenstangen, Rebzeilen, Apfelbäume, Fischerboote mit Netz und springenden Felchen, Fähre mit Steg, Halle mit Tonnendach, Luftschiff
+- Ziel-Banner zeigt nach allen Zielen den Ladestand des Luftschiffs; antippen öffnet die Halle
+- Debug (`#debug`): „Region abschließen“ (alle Felder frei, Luftschiff beladen)
+
+### Geändert
+- Spielstand `saveVersion` 4, mit Migration von Version 3; bereits erkundete Regionen bekommen die Halle beim Laden
+- Oberschwaben hat einen Luftschiffplatz (zählt nicht zu den freischaltbaren Feldern)
+- Gebäude können eine Höchstzahl pro Region haben (`max`, z. B. Ballonstation 1, Fähre 3)
+- Offline-Ertrag: bei langer Abwesenheit gröbere Rechenschritte (höchstens 20.000), damit 8 h Nachtschicht auf dem Handy schnell bleiben
+- Animationen mit Startzeit in der Zukunft verursachen keine Canvas-Fehler mehr
+- Balancing: Test-Bot braucht für Oberschwaben ca. 22 min, für das Nordufer ca. 36 min
+
 ## [0.3.0] – Meilenstein 3: Meta
 
 ### Neu
