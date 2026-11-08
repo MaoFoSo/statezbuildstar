@@ -42,6 +42,7 @@
 - Spielstand `saveVersion` 2, mit Migration von Version 1: Inventar und Markt werden ergänzt, Rohstofffelder bekommen ihre Betriebe
 - Das Platzhalter-Einkommen aus Meilenstein 1 ist entfernt
 - Der Debug-Button „+1.000 Münzen“ erscheint nur noch mit `#debug` in der URL
+- „Spielstand zurücksetzen“ fragt jetzt im Spiel nach statt über `confirm()`, das in eingebetteten Ansichten gesperrt ist
 
 ## [0.1.0] – Meilenstein 1: Raster & Steuerung
 

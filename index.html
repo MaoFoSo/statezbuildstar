@@ -1399,12 +1399,21 @@ function openSettings() {
   $('exportBtn').onclick = openExport;
   $('importBtn').onclick = openImport;
   if (debug) $('debugCoins').onclick = () => { state.coins += CONFIG.debugCoins; updateHUD(); toast('+' + fmt(CONFIG.debugCoins) + ' Münzen'); };
-  $('resetBtn').onclick = () => {
-    if (!confirm('Wirklich den gesamten Spielstand löschen?')) return;
-    try { localStorage.removeItem(CONFIG.saveKey); } catch (e) { /* ignorieren */ }
-    startState(newState()); centerCamera(); closeModal(); toast('Neues Spiel gestartet');
-  };
+  $('resetBtn').onclick = openResetConfirm;
   $('closeSettings').onclick = closeModal;
+}
+
+// Bestätigung im Spiel (confirm() ist in eingebetteten Ansichten oft gesperrt)
+function openResetConfirm() {
+  openModal(`<h2>Spielstand zurücksetzen?</h2>
+    <p class="hint">Alle Felder, Gebäude, Münzen und Waren gehen verloren. Das lässt sich nicht rückgängig machen. Tipp: Exportiere vorher deinen Spielstand.</p>
+    <button class="secbtn danger" id="resetYes">Ja, alles löschen</button>
+    <button class="secbtn" id="resetNo">Abbrechen</button>`);
+  $('resetYes').onclick = () => {
+    try { localStorage.removeItem(CONFIG.saveKey); } catch (e) { /* ignorieren */ }
+    startState(newState()); centerCamera(); save(); closeModal(); toast('Neues Spiel gestartet');
+  };
+  $('resetNo').onclick = openSettings;
 }
 
 function openExport() {
