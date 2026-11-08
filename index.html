@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#bfe3f2">
+<title>Bodensee Builder</title>
+<style>
+  :root {
+    --blue: #2f7fb5;
+    --blue-dark: #1d5a85;
+    --green: #6cbf4a;
+    --ink: #24384a;
+    --muted: #6b7f90;
+    --panel: rgba(255, 255, 255, 0.94);
+    --shadow: 0 6px 24px rgba(20, 50, 80, 0.18);
+    --gold: #f2b631;
+    --pearl: #b9a6e8;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: #bfe3f2; color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    overscroll-behavior: none; touch-action: none;
+  }
+  #map { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+  /* Topbar */
+  #topbar {
+    position: fixed; left: 0; right: 0; top: 0;
+    padding: calc(var(--safe-top) + 8px) 10px 8px;
+    display: flex; gap: 8px; justify-content: center; pointer-events: none; z-index: 5;
+  }
+  .chip {
+    pointer-events: auto; background: var(--panel); border-radius: 999px; box-shadow: var(--shadow);
+    padding: 6px 12px 6px 6px; display: flex; align-items: center; gap: 6px;
+    font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; min-width: 0;
+  }
+  .chip .ico { width: 24px; height: 24px; flex: none; }
+  .chip small { font-weight: 600; color: var(--muted); font-size: 12px; }
+
+  /* Bottom bar */
+  #bottombar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    padding: 8px 8px calc(var(--safe-bottom) + 8px);
+    display: flex; justify-content: center; pointer-events: none;
+  }
+  #bottombar .bar {
+    pointer-events: auto; display: flex; gap: 2px; background: var(--panel); border-radius: 20px;
+    box-shadow: var(--shadow); padding: 4px; max-width: 520px; width: 100%;
+  }
+  #bottombar button {
+    flex: 1; border: 0; background: transparent; border-radius: 16px; padding: 6px 2px 5px;
+    font: inherit; font-size: 11px; font-weight: 600; color: var(--ink);
+    display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;
+  }
+  #bottombar button:active { background: rgba(47, 127, 181, 0.12); }
+  #bottombar button svg { width: 26px; height: 26px; }
+
+  /* Bottom sheet */
+  #sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+    transform: translateY(110%); transition: transform 0.25s cubic-bezier(.2,.8,.2,1);
+    display: flex; justify-content: center; pointer-events: none;
+  }
+  #sheet.open { transform: translateY(0); }
+  #sheet .inner {
+    pointer-events: auto; background: #fff; width: 100%; max-width: 560px;
+    border-radius: 22px 22px 0 0; box-shadow: 0 -8px 30px rgba(20, 50, 80, 0.2);
+    padding: 10px 18px calc(var(--safe-bottom) + 18px);
+  }
+  .grip { width: 40px; height: 5px; border-radius: 3px; background: #d5dde4; margin: 0 auto 10px; }
+  .sheet-head { display: flex; align-items: center; gap: 12px; }
+  .sheet-head .badge {
+    width: 52px; height: 52px; border-radius: 14px; flex: none;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sheet-head h2 { margin: 0; font-size: 19px; }
+  .sheet-head p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+  .sheet-body { margin-top: 12px; font-size: 14px; line-height: 1.45; }
+  .sheet-body .note { color: var(--muted); font-size: 13px; }
+  .stars { display: flex; gap: 4px; margin: 8px 0; }
+  .stars span { flex: 1; height: 8px; border-radius: 4px; background: #e3e9ee; }
+  .stars span.on { background: var(--gold); }
+  .bigbtn {
+    margin-top: 14px; width: 100%; border: 0; border-radius: 16px; padding: 14px;
+    font: inherit; font-size: 17px; font-weight: 800; color: #fff; background: var(--green);
+    box-shadow: 0 4px 0 #4f9a33; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;
+  }
+  .bigbtn:active { transform: translateY(2px); box-shadow: 0 2px 0 #4f9a33; }
+  .bigbtn[disabled] { background: #c4ccd3; box-shadow: 0 4px 0 #a7b0b8; cursor: default; }
+  .bigbtn .ico { width: 22px; height: 22px; }
+  .missing { text-align: center; color: #c0503f; font-size: 13px; font-weight: 600; margin-top: 8px; min-height: 18px; }
+  .secbtn {
+    margin-top: 10px; width: 100%; border: 0; border-radius: 14px; padding: 12px;
+    font: inherit; font-size: 15px; font-weight: 700; color: var(--ink); background: #eef2f5; cursor: pointer;
+  }
+  .secbtn.danger { color: #b33b2c; }
+
+  /* Modal */
+  #modal {
+    position: fixed; inset: 0; z-index: 20; background: rgba(20, 40, 60, 0.35);
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  #modal.open { display: flex; }
+  #modal .box {
+    background: #fff; border-radius: 22px; box-shadow: var(--shadow); width: 100%; max-width: 420px;
+    padding: 18px; max-height: 80vh; overflow: auto;
+  }
+  #modal h2 { margin: 0 0 10px; font-size: 20px; }
+  .row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eef2f5; font-size: 15px; }
+  .toggle { width: 52px; height: 30px; border-radius: 15px; background: #c9d2da; position: relative; border: 0; cursor: pointer; transition: background .2s; }
+  .toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+  .toggle.on { background: var(--green); }
+  .toggle.on::after { left: 25px; }
+
+  /* Toast */
+  #toast {
+    position: fixed; left: 50%; top: calc(var(--safe-top) + 62px); z-index: 30;
+    transform: translate(-50%, -20px); opacity: 0; transition: all .25s;
+    background: var(--ink); color: #fff; padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 600;
+    pointer-events: none; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis;
+  }
+  #toast.show { opacity: 0.95; transform: translate(-50%, 0); }
+
+  /* Loader */
+  #loader {
+    position: fixed; inset: 0; z-index: 40; background: linear-gradient(#bfe3f2, #e7f4fa);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    transition: opacity .5s;
+  }
+  #loader h1 { margin: 0; font-size: 30px; color: var(--blue-dark); letter-spacing: .5px; }
+  #loader p { margin: 0; color: var(--muted); font-style: italic; }
+  #loader.hide { opacity: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+<canvas id="map" aria-label="Spielkarte"></canvas>
+
+<div id="topbar">
+  <div class="chip" id="chipCoins"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f2b631"/><circle cx="12" cy="12" r="7" fill="#f7cd5c"/><path d="M9 12h6M12 9v6" stroke="#c98f12" stroke-width="2" stroke-linecap="round"/></svg><span id="coins">0</span></div>
+  <div class="chip" id="chipPearls"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#cbbcf0"/><circle cx="9" cy="9" r="3" fill="#fff" opacity=".8"/></svg><span id="pearls">0</span></div>
+  <div class="chip"><span id="income">0</span><small>/s</small></div>
+</div>
+
+<div id="bottombar"><div class="bar">
+  <button data-act="upgrades"><svg viewBox="0 0 24 24" fill="none" stroke="#2f7fb5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Upgrades</button>
+  <button data-act="balloons"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 4 4 7 6 9h2c2-2 6-5 6-9a7 7 0 0 0-7-7z" fill="#e8735a"/><path d="M12 2c-2 2-3 5-3 7s1 6 2 9h2c1-3 2-7 2-9s-1-5-3-7z" fill="#f4b740"/><rect x="10" y="19" width="4" height="3" rx="1" fill="#8a5a33"/></svg>Ballons</button>
+  <button data-act="market"><svg viewBox="0 0 24 24"><path d="M3 9l2-5h14l2 5z" fill="#e8735a"/><rect x="4" y="9" width="16" height="11" rx="1" fill="#f3e3c3"/><rect x="10" y="13" width="4" height="7" fill="#8a5a33"/></svg>Lager</button>
+  <button data-act="goals"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#e8735a"/><circle cx="12" cy="12" r="6" fill="#fff"/><circle cx="12" cy="12" r="3" fill="#e8735a"/></svg>Ziele</button>
+  <button data-act="settings"><svg viewBox="0 0 24 24" fill="none" stroke="#6b7f90" stroke-width="2.2"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke-linecap="round"/></svg>Optionen</button>
+</div></div>
+
+<div id="sheet"><div class="inner" id="sheetInner"></div></div>
+<div id="modal"><div class="box" id="modalBox"></div></div>
+<div id="toast"></div>
+<div id="loader"><h1>Bodensee Builder</h1><p id="loaderQuote">Felder werden vermessen …</p></div>
+
+<script>
+'use strict';
+/* =====================================================================
+ * 1. CONFIG – alle Spielwerte zentral
+ * ===================================================================== */
+const CONFIG = {
+  saveVersion: 1,
+  saveKey: 'bodenseeBuilder.save',
+  autosaveSeconds: 10,
+  tickRate: 10,                 // Simulation in Hz
+  maxTicksPerFrame: 50,
+
+  grid: {
+    side: 40,                   // Kantenlänge s (Welteinheiten)
+    tilt: 0.72,                 // y-Stauchung für 2,5D
+    depth: 9,                   // Plattentiefe (Welteinheiten)
+  },
+  camera: {
+    minZoom: 0.45, maxZoom: 3.2, // relativ zur "passt auf Bildschirm"-Zoomstufe
+    startZoom: 1.25,
+    friction: 0.9,               // Pan-Trägheit pro Frame
+    tapSlop: 8,                  // px bis aus Tap ein Pan wird
+  },
+
+  start: { coins: 60, pearls: 0 },
+  unlock: { base: 15, growth: 1.22 },
+  // Vorläufig nur für Meilenstein 1 (wird in M2 durch echte Wirtschaft ersetzt)
+  m1: { incomePerField: 1.0, debugCoins: 1000 },
+
+  fogClearMs: 900,
+
+  fieldTypes: {
+    town:    { name: 'Altstadt',      desc: 'Dein Startpunkt mit Türmen und Gassen.', top: '#f1e4c8', side: '#cdb88f', icon: '🏰' },
+    forest:  { name: 'Wald',          desc: 'Rohstoff: Holz',                        top: '#7fc35a', side: '#4f9636', icon: '🌲' },
+    gravel:  { name: 'Kiesgrube',     desc: 'Rohstoff: Kies',                        top: '#d9cdb4', side: '#b0a283', icon: '⛰️' },
+    pasture: { name: 'Weide',         desc: 'Rohstoff: Milch',                       top: '#a6dc6e', side: '#73b043', icon: '🐄' },
+    plot:    { name: 'Bauplatz',      desc: 'Platz für einen Verarbeitungsbetrieb.', top: '#cfe7a8', side: '#98bf6c', icon: '🏗️' },
+    water:   { name: 'See',           desc: 'Wasserfläche',                          top: '#7cc3e6', side: '#4f97bd', icon: '🌊' },
+  },
+  fog: { top: '#e9eef3', side: '#c3ccd5', puff: '#f7f9fb', edge: '#d6dee6' },
+  square: { path: '#e6d3a8', road: '#c9b48a', fog: '#dde4ea', grass: '#b9dd8a' },
+
+  regions: [
+    {
+      id: 'oberschwaben',
+      name: 'Oberschwaben',
+      bg: ['#bfe3f2', '#dff0e4'],
+      // Legende: T=Altstadt  W=Wald  K=Kiesgrube  M=Weide  B=Bauplatz  ~=See  .=kein Feld
+      map: [
+        '..WWW...',
+        '.WWBWK..',
+        'WWBMBKK.',
+        'WMBTBBK.',
+        '.MMBWBKW',
+        '.MBBWBW.',
+        '..M~~WW.',
+        '..MB~B..',
+        '...MM...',
+      ],
+      startUnlocked: ['T'],
+    },
+  ],
+
+  quotes: ['Schaffe, schaffe, Häusle baue …', 'Felder werden vermessen …', 'Der Nebel zieht übers Schwäbische Meer …'],
+};
+const TYPE_BY_CHAR = { T: 'town', W: 'forest', K: 'gravel', M: 'pasture', B: 'plot', '~': 'water' };
+
+/* =====================================================================
+ * 2. UTILS – Format, Mathe, Geometrie
+ * ===================================================================== */
+function groupDE(intStr) { return intStr.replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+function fmt(n) {
+  if (!isFinite(n)) return '∞';
+  const neg = n < 0; n = Math.abs(n);
+  let out;
+  if (n < 10000) out = groupDE(String(Math.floor(n)));
+  else {
+    const units = [[1e12, 'Bio.'], [1e9, 'Mrd.'], [1e6, 'Mio.'], [1e3, 'Tsd.']];
+    const [div, label] = units.find(([d]) => n >= d);
+    const v = n / div;
+    out = (v >= 100 ? Math.floor(v).toString() : (Math.floor(v * 10) / 10).toFixed(1).replace('.', ',')) + ' ' + label;
+  }
+  return (neg ? '−' : '') + out;
+}
+function fmtRate(n) { return n < 10 ? (Math.round(n * 10) / 10).toString().replace('.', ',') : fmt(n); }
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+
+function pointInPoly(x, y, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+// Deterministischer Pseudozufall pro Feld (für Deko)
+function hashRand(a, b, k = 0) {
+  let h = (a * 374761393 + b * 668265263 + k * 2147483647) | 0;
+  h = (h ^ (h >>> 13)) * 1274126177 | 0;
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+const S = CONFIG.grid.side;
+const W = S * (1 + Math.SQRT2);        // Achteck-Breite (Kante zu Kante)
+const HS = S / 2, HW = W / 2, SQ = S / Math.SQRT2; // Halbmaße
+// Achteck-Ecken relativ zum Mittelpunkt, im Uhrzeigersinn ab oben-rechts
+const OCT_SHAPE = [[HS, -HW], [HW, -HS], [HW, HS], [HS, HW], [-HS, HW], [-HW, HS], [-HW, -HS], [-HS, -HW]];
+const SQ_SHAPE = [[0, -SQ], [SQ, 0], [0, SQ], [-SQ, 0]];
+
+/* =====================================================================
+ * 3. STATE
+ * ===================================================================== */
+let state = null;   // serialisierbar
+const world = {     // Laufzeit, aus state + CONFIG abgeleitet
+  region: null, octs: [], octMap: new Map(), squares: [], sqMap: new Map(),
+  bounds: { minX: 0, minY: 0, maxX: 0, maxY: 0 },
+};
+const fx = { fogClear: new Map(), popups: [], pulse: 0 };
+let selected = null; // { kind:'oct'|'sq', ref }
+
+function newState() {
+  return {
+    saveVersion: CONFIG.saveVersion,
+    lastSeen: Date.now(),
+    regionIndex: 0,
+    coins: CONFIG.start.coins,
+    pearls: CONFIG.start.pearls,
+    fields: {},
+    settings: { sound: true, dialect: false },
+    camera: null,
+    stats: { unlocks: 0 },
+  };
+}
+
+const key = (c, r) => c + ',' + r;
+
+function buildWorld() {
+  const region = CONFIG.regions[state.regionIndex];
+  world.region = region;
+  world.octs = []; world.octMap.clear(); world.squares = []; world.sqMap.clear();
+
+  region.map.forEach((line, row) => {
+    [...line].forEach((ch, col) => {
+      const type = TYPE_BY_CHAR[ch];
+      if (!type) return;
+      const k = key(col, row);
+      if (!state.fields[k]) state.fields[k] = { u: region.startUnlocked.includes(ch) ? 1 : 0 };
+      const cx = col * W, cy = row * W;
+      const oct = {
+        id: k, col, row, type, cx, cy, startField: region.startUnlocked.includes(ch),
+        poly: OCT_SHAPE.map(([x, y]) => [cx + x, cy + y]),
+        nOct: [], nSq: [],
+        get unlocked() { return !!state.fields[k].u; },
+      };
+      world.octs.push(oct); world.octMap.set(k, oct);
+    });
+  });
+
+  // Nachbarn
+  for (const o of world.octs) {
+    const { col: c, row: r } = o;
+    o.nOct = [key(c, r - 1), key(c + 1, r), key(c, r + 1), key(c - 1, r)].map(k => world.octMap.get(k) || null);
+  }
+  // Quadrate: (c,r) liegt bei (c+0.5, r+0.5)
+  const cols = Math.max(...region.map.map(l => l.length));
+  for (let r = -1; r < region.map.length; r++) {
+    for (let c = -1; c < cols; c++) {
+      const n = [key(c, r), key(c + 1, r), key(c + 1, r + 1), key(c, r + 1)].map(k => world.octMap.get(k) || null); // NW,NE,SE,SW
+      if (n.filter(Boolean).length < 2) continue;
+      const cx = (c + 0.5) * W, cy = (r + 0.5) * W;
+      const sq = { id: key(c, r), c, r, cx, cy, nOct: n, poly: SQ_SHAPE.map(([x, y]) => [cx + x, cy + y]) };
+      world.squares.push(sq); world.sqMap.set(sq.id, sq);
+    }
+  }
+  for (const o of world.octs) {
+    const { col: c, row: r } = o;
+    o.nSq = [key(c, r - 1), key(c, r), key(c - 1, r), key(c - 1, r - 1)].map(k => world.sqMap.get(k) || null); // NE,SE,SW,NW
+  }
+
+  const xs = world.octs.map(o => o.cx), ys = world.octs.map(o => o.cy);
+  world.bounds = { minX: Math.min(...xs) - HW, maxX: Math.max(...xs) + HW, minY: Math.min(...ys) - HW, maxY: Math.max(...ys) + HW };
+}
+
+const unlockedCount = () => world.octs.filter(o => o.unlocked).length;
+const startCount = () => world.octs.filter(o => o.startField).length;
+function unlockCost() {
+  const n = Math.max(0, unlockedCount() - startCount());
+  return Math.ceil(CONFIG.unlock.base * Math.pow(CONFIG.unlock.growth, n));
+}
+const isUnlockable = o => !o.unlocked && o.nOct.some(n => n && n.unlocked);
+function squareKind(sq) {
+  const un = sq.nOct.filter(o => o && o.unlocked).length;
+  const water = sq.nOct.filter(o => o && o.type === 'water').length;
+  if (un === 0) return 'fog';
+  if (water >= 2) return 'buoy';
+  if (un >= 2) return 'road';
+  return 'path';
+}
+function incomePerSecond() { return unlockedCount() * CONFIG.m1.incomePerField; }
+
+function tryUnlock(o) {
+  if (!isUnlockable(o)) return false;
+  const cost = unlockCost();
+  if (state.coins < cost) return false;
+  state.coins -= cost;
+  state.fields[o.id].u = 1;
+  state.stats.unlocks++;
+  fx.fogClear.set(o.id, performance.now());
+  addPopup(o.cx, o.cy, '−' + fmt(cost), '#c0503f');
+  sound.pling(880);
+  vibrate(15);
+  save();
+  return true;
+}
+
+/* =====================================================================
+ * 4. SIMULATION – fester Tick
+ * ===================================================================== */
+const DT = 1 / CONFIG.tickRate;
+function simTick(dt) {
+  state.coins += incomePerSecond() * dt;
+}
+
+/* =====================================================================
+ * 5. RENDERING
+ * ===================================================================== */
+const canvas = document.getElementById('map');
+const ctx = canvas.getContext('2d');
+let dpr = 1, vw = 0, vh = 0, fitZoom = 1;
+const cam = { x: 0, y: 0, zoom: 1, vx: 0, vy: 0 };
+const T = CONFIG.grid.tilt;
+
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  vw = window.innerWidth; vh = window.innerHeight;
+  canvas.width = Math.round(vw * dpr); canvas.height = Math.round(vh * dpr);
+  const b = world.bounds;
+  fitZoom = Math.min(vw / (b.maxX - b.minX + W), (vh - 140) / ((b.maxY - b.minY) * T + W));
+  clampCamera();
+}
+// Welt -> Bildschirm
+const sx = wx => (wx - cam.x) * cam.zoom + vw / 2;
+const sy = wy => (wy * T - cam.y) * cam.zoom + vh / 2;
+// Bildschirm -> Welt
+const wxOf = px => (px - vw / 2) / cam.zoom + cam.x;
+const wyOf = py => ((py - vh / 2) / cam.zoom + cam.y) / T;
+
+function clampCamera() {
+  const b = world.bounds;
+  cam.zoom = clamp(cam.zoom, fitZoom * CONFIG.camera.minZoom, fitZoom * CONFIG.camera.maxZoom);
+  cam.x = clamp(cam.x, b.minX, b.maxX);
+  cam.y = clamp(cam.y, b.minY * T, b.maxY * T);
+}
+
+function polyPath(poly, dy = 0) {
+  ctx.beginPath();
+  ctx.moveTo(sx(poly[0][0]), sy(poly[0][1]) + dy);
+  for (let i = 1; i < poly.length; i++) ctx.lineTo(sx(poly[i][0]), sy(poly[i][1]) + dy);
+  ctx.closePath();
+}
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  let r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  if (f >= 0) { r += (255 - r) * f; g += (255 - g) * f; b += (255 - b) * f; }
+  else { r *= 1 + f; g *= 1 + f; b *= 1 + f; }
+  return `rgb(${r | 0},${g | 0},${b | 0})`;
+}
+
+function drawBackground(now) {
+  const [c1, c2] = world.region.bg;
+  const g = ctx.createLinearGradient(0, 0, 0, vh);
+  g.addColorStop(0, c1); g.addColorStop(1, c2);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, vw, vh);
+  // Alpenpanorama hinter der Karte (Weltraum, leichte Parallaxe)
+  const b = world.bounds;
+  const baseY = sy(b.minY) - 30 * cam.zoom;
+  const par = 0.5;
+  ctx.save();
+  ctx.translate((vw / 2 - sx((b.minX + b.maxX) / 2)) * par, 0);
+  const left = sx(b.minX - W * 3), right = sx(b.maxX + W * 3), span = right - left;
+  ctx.fillStyle = '#c9dbe8';
+  ctx.beginPath(); ctx.moveTo(left, baseY);
+  const peaks = [0, .08, .15, .22, .3, .36, .45, .52, .6, .68, .74, .82, .9, 1];
+  const hts = [0, 60, 30, 95, 50, 120, 70, 140, 80, 100, 55, 110, 40, 0];
+  peaks.forEach((p, i) => ctx.lineTo(left + span * p, baseY - hts[i] * cam.zoom * 0.7));
+  ctx.closePath(); ctx.fill();
+  // weicher Dunst am Bergfuß statt harter Kante
+  const haze = ctx.createLinearGradient(0, baseY - 40 * cam.zoom, 0, baseY + 30 * cam.zoom);
+  haze.addColorStop(0, 'rgba(223,240,228,0)'); haze.addColorStop(1, c2);
+  ctx.fillStyle = haze; ctx.fillRect(left - vw, baseY - 40 * cam.zoom, span + vw * 2, 70 * cam.zoom);
+  ctx.fillStyle = c2; ctx.fillRect(left - vw, baseY + 30 * cam.zoom - 1, span + vw * 2, vh * 2);
+  // Schneekappen
+  ctx.fillStyle = '#f4f8fb';
+  peaks.forEach((p, i) => {
+    if (hts[i] < 90) return;
+    const x = left + span * p, y = baseY - hts[i] * cam.zoom * 0.7, w = 16 * cam.zoom, h = 14 * cam.zoom;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w, y + h); ctx.lineTo(x + w * .3, y + h * .7); ctx.lineTo(x, y + h * 1.1);
+    ctx.lineTo(x - w * .4, y + h * .7); ctx.lineTo(x - w, y + h); ctx.closePath(); ctx.fill();
+  });
+  ctx.restore();
+}
+
+function drawSquare(sq, now) {
+  const kind = squareKind(sq);
+  const col = kind === 'fog' ? CONFIG.square.fog : kind === 'buoy' ? '#8fcbe8' : kind === 'road' ? CONFIG.square.road : CONFIG.square.path;
+  polyPath(sq.poly, CONFIG.grid.depth * cam.zoom * 0.6);
+  ctx.fillStyle = col; ctx.fill();
+  if (kind === 'road' || kind === 'path') {
+    // Pflaster-/Wegmuster: kleine Kreuzung
+    const x = sx(sq.cx), y = sy(sq.cy) + CONFIG.grid.depth * cam.zoom * 0.6, r = SQ * cam.zoom * 0.45;
+    ctx.strokeStyle = shade(col, kind === 'road' ? -0.18 : -0.1); ctx.lineWidth = Math.max(1, 1.4 * cam.zoom);
+    ctx.setLineDash([3 * cam.zoom, 3 * cam.zoom]);
+    ctx.beginPath(); ctx.moveTo(x - r, y); ctx.lineTo(x + r, y); ctx.moveTo(x, y - r * T); ctx.lineTo(x, y + r * T); ctx.stroke();
+    ctx.setLineDash([]);
+  } else if (kind === 'buoy') {
+    const x = sx(sq.cx), y = sy(sq.cy) + CONFIG.grid.depth * cam.zoom * 0.6;
+    const bob = Math.sin(now / 500 + sq.c) * 1.5 * cam.zoom;
+    ctx.fillStyle = '#e8573f'; ctx.beginPath(); ctx.arc(x, y + bob, 3.5 * cam.zoom, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function drawOct(o, now) {
+  const z = cam.zoom, d = CONFIG.grid.depth * z;
+  const ft = CONFIG.fieldTypes[o.type];
+  const clearT = fx.fogClear.get(o.id);
+  let fogA = o.unlocked ? 0 : 1;
+  if (clearT !== undefined) {
+    const t = (now - clearT) / CONFIG.fogClearMs;
+    if (t >= 1) fx.fogClear.delete(o.id); else fogA = 1 - easeOut(t);
+  }
+  const p = o.poly;
+  // Extrusion entlang der unteren Kanten: p[2]..p[5]
+  const sideCol = o.unlocked ? ft.side : CONFIG.fog.side;
+  ctx.beginPath();
+  ctx.moveTo(sx(p[2][0]), sy(p[2][1]));
+  for (let i = 3; i <= 5; i++) ctx.lineTo(sx(p[i][0]), sy(p[i][1]));
+  for (let i = 5; i >= 2; i--) ctx.lineTo(sx(p[i][0]), sy(p[i][1]) + d);
+  ctx.closePath(); ctx.fillStyle = sideCol; ctx.fill();
+
+  // Oberseite
+  if (o.unlocked) {
+    polyPath(p); ctx.fillStyle = ft.top; ctx.fill();
+    ctx.strokeStyle = shade(ft.top, 0.35); ctx.lineWidth = Math.max(1, 1.2 * z); ctx.stroke();
+    drawDecor(o, now);
+    if (selected && selected.ref === o) {
+      polyPath(p); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3 * z; ctx.stroke();
+      polyPath(p); ctx.strokeStyle = 'rgba(47,127,181,.9)'; ctx.lineWidth = 1.5 * z; ctx.stroke();
+    }
+  }
+  if (fogA > 0) drawFog(o, now, fogA);
+}
+
+function drawFog(o, now, a) {
+  const z = cam.zoom, p = o.poly;
+  const spread = 1 + (1 - a) * 0.8; // Nebel zieht beim Freischalten auseinander
+  ctx.save();
+  ctx.globalAlpha = a;
+  // Nebel-Platte nur solange gesperrt; beim Freischalten bleiben nur die wegziehenden Bausche
+  if (!o.unlocked) { polyPath(p); ctx.fillStyle = CONFIG.fog.top; ctx.fill(); ctx.strokeStyle = CONFIG.fog.edge; ctx.lineWidth = Math.max(1, z); ctx.stroke(); }
+  // Wolkenbausche
+  const n = 5;
+  ctx.fillStyle = CONFIG.fog.puff;
+  for (let i = 0; i < n; i++) {
+    const ang = hashRand(o.col, o.row, i) * Math.PI * 2;
+    const rad = (0.15 + hashRand(o.col, o.row, i + 9) * 0.25) * W * spread;
+    const drift = Math.sin(now / 2400 + i + o.col) * 3;
+    const x = sx(o.cx + Math.cos(ang) * rad + drift), y = sy(o.cy + Math.sin(ang) * rad) - 4 * z;
+    const r = (0.17 + hashRand(o.col, o.row, i + 3) * 0.1) * W * z;
+    ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.75, 0, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+
+  if (!o.unlocked && isUnlockable(o) && z > 0.35) {
+    // Kosten-Plakette
+    const cost = unlockCost();
+    const afford = state.coins >= cost;
+    const x = sx(o.cx), y = sy(o.cy) - 4 * z;
+    const pulse = afford ? 1 + Math.sin(now / 300) * 0.05 : 1;
+    const fs = Math.max(9, 11 * z) * pulse;
+    ctx.font = `700 ${fs}px -apple-system, system-ui, sans-serif`;
+    const label = fmt(cost);
+    const tw = ctx.measureText(label).width;
+    const h = fs * 1.7, w = tw + h + fs * 0.4;
+    ctx.fillStyle = afford ? 'rgba(108,191,74,.95)' : 'rgba(255,255,255,.92)';
+    roundRect(x - w / 2, y - h / 2, w, h, h / 2); ctx.fill();
+    ctx.fillStyle = '#f2b631'; ctx.beginPath(); ctx.arc(x - w / 2 + h / 2, y, h * 0.32, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = afford ? '#fff' : '#5a6b7a'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, x - w / 2 + h * 0.95, y + 0.5);
+  }
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+
+// --- Deko (prozedurale Low-Poly-Formen) ---
+function tree(x, y, s, c1, c2) {
+  ctx.fillStyle = '#8a5a33'; ctx.fillRect(x - s * .08, y - s * .3, s * .16, s * .3);
+  ctx.fillStyle = c1; ctx.beginPath(); ctx.moveTo(x, y - s * 1.25); ctx.lineTo(x + s * .45, y - s * .25); ctx.lineTo(x - s * .45, y - s * .25); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = c2; ctx.beginPath(); ctx.moveTo(x, y - s * 1.25); ctx.lineTo(x + s * .45, y - s * .25); ctx.lineTo(x, y - s * .25); ctx.closePath(); ctx.fill();
+}
+function drawDecor(o, now) {
+  const z = cam.zoom, x0 = sx(o.cx), y0 = sy(o.cy);
+  const R = (k) => hashRand(o.col, o.row, k);
+  switch (o.type) {
+    case 'forest': {
+      const pts = [[-.22, -.12], [.15, -.2], [-.05, .05], [.25, .12], [-.28, .2], [.05, .28]];
+      pts.forEach(([dx, dy], i) => tree(x0 + dx * W * z, y0 + dy * W * z * T + 6 * z, (12 + R(i) * 6) * z, '#3f8f3a', '#2f7630'));
+      break;
+    }
+    case 'gravel': {
+      ctx.fillStyle = '#bfae8a';
+      ctx.beginPath(); ctx.moveTo(x0 - 22 * z, y0 + 8 * z); ctx.lineTo(x0 - 6 * z, y0 - 12 * z); ctx.lineTo(x0 + 6 * z, y0 - 4 * z); ctx.lineTo(x0 + 22 * z, y0 + 8 * z); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#a69472';
+      ctx.beginPath(); ctx.moveTo(x0 - 6 * z, y0 - 12 * z); ctx.lineTo(x0 + 6 * z, y0 - 4 * z); ctx.lineTo(x0 + 22 * z, y0 + 8 * z); ctx.lineTo(x0 + 2 * z, y0 + 8 * z); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#8f8a84';
+      for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.arc(x0 + (R(i) - .5) * 40 * z, y0 + (8 + R(i + 7) * 10) * z, 2 * z, 0, 7); ctx.fill(); }
+      break;
+    }
+    case 'pasture': {
+      // Zaun + Kuh
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 * z;
+      ctx.beginPath(); ctx.moveTo(x0 - 26 * z, y0 + 12 * z); ctx.lineTo(x0 + 26 * z, y0 + 12 * z); ctx.stroke();
+      for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(x0 + i * 13 * z, y0 + 12 * z); ctx.lineTo(x0 + i * 13 * z, y0 + 6 * z); ctx.stroke(); }
+      const bob = Math.sin(now / 900 + o.col) * .6 * z;
+      const cx = x0 + (R(1) - .5) * 14 * z, cy = y0 - 4 * z + bob;
+      ctx.fillStyle = '#fff'; roundRect(cx - 9 * z, cy - 5 * z, 18 * z, 10 * z, 4 * z); ctx.fill();
+      ctx.fillStyle = '#3b3b3b'; ctx.beginPath(); ctx.arc(cx - 2 * z, cy - 1 * z, 2.5 * z, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + 9 * z, cy - 3 * z, 3.5 * z, 0, 7); ctx.fill();
+      ctx.fillStyle = '#3b3b3b'; ctx.fillRect(cx - 7 * z, cy + 4 * z, 2 * z, 4 * z); ctx.fillRect(cx + 5 * z, cy + 4 * z, 2 * z, 4 * z);
+      break;
+    }
+    case 'plot': {
+      ctx.setLineDash([4 * z, 3 * z]); ctx.strokeStyle = 'rgba(90,120,60,.6)'; ctx.lineWidth = 1.5 * z;
+      roundRect(x0 - 20 * z, y0 - 12 * z, 40 * z, 24 * z, 4 * z); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = '#8a5a33'; ctx.fillRect(x0 - 1 * z, y0 - 14 * z, 2 * z, 14 * z);
+      ctx.fillStyle = '#f3e3c3'; ctx.fillRect(x0 - 8 * z, y0 - 20 * z, 16 * z, 8 * z);
+      break;
+    }
+    case 'town': {
+      // Altstadt mit Türmen (Ravensburger Flair, generisch)
+      const house = (x, y, w, h, roof) => {
+        ctx.fillStyle = '#fbf3e4'; ctx.fillRect(x - w / 2, y - h, w, h);
+        ctx.fillStyle = roof; ctx.beginPath(); ctx.moveTo(x - w / 2 - z, y - h); ctx.lineTo(x, y - h - w * .6); ctx.lineTo(x + w / 2 + z, y - h); ctx.closePath(); ctx.fill();
+      };
+      house(x0 - 16 * z, y0 + 10 * z, 12 * z, 10 * z, '#d9694a');
+      house(x0 + 15 * z, y0 + 12 * z, 13 * z, 9 * z, '#c85a3f');
+      // Turm
+      ctx.fillStyle = '#efe2c6'; ctx.fillRect(x0 - 5 * z, y0 - 22 * z, 10 * z, 32 * z);
+      ctx.fillStyle = '#d9cba9'; ctx.fillRect(x0, y0 - 22 * z, 5 * z, 32 * z);
+      ctx.fillStyle = '#2f5f8a'; ctx.beginPath(); ctx.moveTo(x0 - 7 * z, y0 - 22 * z); ctx.lineTo(x0, y0 - 36 * z); ctx.lineTo(x0 + 7 * z, y0 - 22 * z); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#4b3a2a'; ctx.fillRect(x0 - 1.5 * z, y0 - 14 * z, 3 * z, 4 * z);
+      // Fähnchen
+      const wave = Math.sin(now / 250) * 1.5 * z;
+      ctx.strokeStyle = '#4b3a2a'; ctx.lineWidth = z; ctx.beginPath(); ctx.moveTo(x0, y0 - 36 * z); ctx.lineTo(x0, y0 - 44 * z); ctx.stroke();
+      ctx.fillStyle = '#e8573f'; ctx.beginPath(); ctx.moveTo(x0, y0 - 44 * z); ctx.lineTo(x0 + 8 * z, y0 - 42 * z + wave); ctx.lineTo(x0, y0 - 40 * z); ctx.closePath(); ctx.fill();
+      break;
+    }
+    case 'water': {
+      ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.5 * z;
+      for (let i = 0; i < 3; i++) {
+        const ph = now / 700 + i * 2 + o.col;
+        const x = x0 + (i - 1) * 14 * z + Math.sin(ph) * 3 * z, y = y0 + (i - 1) * 7 * z;
+        ctx.beginPath(); ctx.moveTo(x - 6 * z, y); ctx.quadraticCurveTo(x - 3 * z, y - 3 * z, x, y); ctx.quadraticCurveTo(x + 3 * z, y + 3 * z, x + 6 * z, y); ctx.stroke();
+      }
+      // Segelboot
+      const bx = x0 + Math.sin(now / 3000 + o.row) * 10 * z, by = y0 + 4 * z;
+      ctx.fillStyle = '#8a5a33'; ctx.beginPath(); ctx.moveTo(bx - 7 * z, by); ctx.lineTo(bx + 7 * z, by); ctx.lineTo(bx + 5 * z, by + 3 * z); ctx.lineTo(bx - 5 * z, by + 3 * z); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(bx, by - 13 * z); ctx.lineTo(bx + 6 * z, by - 1 * z); ctx.lineTo(bx, by - 1 * z); ctx.closePath(); ctx.fill();
+      break;
+    }
+  }
+}
+
+function addPopup(wx, wy, text, color) { fx.popups.push({ wx, wy, text, color, t0: performance.now() }); }
+function drawPopups(now) {
+  fx.popups = fx.popups.filter(p => now - p.t0 < 1200);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const p of fx.popups) {
+    const t = (now - p.t0) / 1200;
+    ctx.globalAlpha = 1 - t * t;
+    ctx.font = `800 ${Math.max(13, 15 * cam.zoom)}px -apple-system, system-ui, sans-serif`;
+    const x = sx(p.wx), y = sy(p.wy) - 20 * cam.zoom - t * 40;
+    ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.strokeText(p.text, x, y);
+    ctx.fillStyle = p.color; ctx.fillText(p.text, x, y);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function render(now) {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  drawBackground(now);
+  for (const sq of world.squares) drawSquare(sq, now);
+  // Achtecke zeilenweise (Painter's Algorithm); world.octs ist bereits nach Zeile sortiert
+  for (const o of world.octs) drawOct(o, now);
+  drawPopups(now);
+}
+
+/* =====================================================================
+ * 6. INPUT – Pan, Pinch, Tap, Mausrad
+ * ===================================================================== */
+const pointers = new Map();
+let gesture = null; // { mode:'tap'|'pan'|'pinch', ... }
+let lastMove = { t: 0, x: 0, y: 0 };
+
+function pinchInfo() {
+  const [a, b] = [...pointers.values()];
+  return { mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, dist: Math.hypot(a.x - b.x, a.y - b.y) || 1 };
+}
+canvas.addEventListener('pointerdown', e => {
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* synthetische Events */ }
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  cam.vx = cam.vy = 0;
+  if (pointers.size === 1) {
+    gesture = { mode: 'tap', sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y };
+    lastMove = { t: performance.now(), x: e.clientX, y: e.clientY };
+  } else if (pointers.size === 2) {
+    const p = pinchInfo();
+    gesture = { mode: 'pinch', ...p, zoom: cam.zoom, wx: wxOf(p.mx), wyp: (p.my - vh / 2) / cam.zoom + cam.y };
+  }
+});
+canvas.addEventListener('pointermove', e => {
+  if (!pointers.has(e.pointerId)) return;
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (!gesture) return;
+  if (gesture.mode === 'tap' && Math.hypot(e.clientX - gesture.sx, e.clientY - gesture.sy) > CONFIG.camera.tapSlop) gesture.mode = 'pan';
+  if (gesture.mode === 'pan') {
+    cam.x = gesture.cx - (e.clientX - gesture.sx) / cam.zoom;
+    cam.y = gesture.cy - (e.clientY - gesture.sy) / cam.zoom;
+    const now = performance.now(), dt = Math.max(1, now - lastMove.t);
+    cam.vx = -(e.clientX - lastMove.x) / dt * 16 / cam.zoom;
+    cam.vy = -(e.clientY - lastMove.y) / dt * 16 / cam.zoom;
+    lastMove = { t: now, x: e.clientX, y: e.clientY };
+    clampCamera();
+  } else if (gesture.mode === 'pinch' && pointers.size >= 2) {
+    const p = pinchInfo();
+    cam.zoom = clamp(gesture.zoom * p.dist / gesture.dist, fitZoom * CONFIG.camera.minZoom, fitZoom * CONFIG.camera.maxZoom);
+    // gegriffener Weltpunkt bleibt unter dem Fingermittelpunkt
+    cam.x = gesture.wx - (p.mx - vw / 2) / cam.zoom;
+    cam.y = gesture.wyp - (p.my - vh / 2) / cam.zoom;
+    clampCamera();
+  }
+});
+function endPointer(e) {
+  if (!pointers.has(e.pointerId)) return;
+  pointers.delete(e.pointerId);
+  if (gesture && gesture.mode === 'tap' && pointers.size === 0 && e.type === 'pointerup') handleTap(e.clientX, e.clientY);
+  if (gesture && gesture.mode === 'pan' && performance.now() - lastMove.t > 80) cam.vx = cam.vy = 0;
+  if (pointers.size === 1 && gesture && gesture.mode === 'pinch') {
+    // weiter mit Ein-Finger-Pan, ohne Sprung
+    const [p] = [...pointers.values()];
+    gesture = { mode: 'pan', sx: p.x, sy: p.y, cx: cam.x, cy: cam.y };
+    lastMove = { t: performance.now(), x: p.x, y: p.y };
+    cam.vx = cam.vy = 0;
+  } else if (pointers.size === 0) gesture = null;
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const wx = wxOf(e.clientX), wyp = (e.clientY - vh / 2) / cam.zoom + cam.y;
+  cam.zoom = clamp(cam.zoom * Math.exp(-e.deltaY * 0.0015), fitZoom * CONFIG.camera.minZoom, fitZoom * CONFIG.camera.maxZoom);
+  cam.x = wx - (e.clientX - vw / 2) / cam.zoom;
+  cam.y = wyp - (e.clientY - vh / 2) / cam.zoom;
+  clampCamera();
+}, { passive: false });
+// iOS Safari: System-Zoom unterdrücken
+['gesturestart', 'gesturechange', 'gestureend', 'dblclick'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+
+function hitTest(px, py) {
+  const wx = wxOf(px), wy = wyOf(py);
+  const o = world.octMap.get(key(Math.round(wx / W), Math.round(wy / W)));
+  if (o && pointInPoly(wx, wy, o.poly)) return { kind: 'oct', ref: o };
+  // Quadrate liegen optisch etwas tiefer (siehe drawSquare)
+  const wy2 = wyOf(py - CONFIG.grid.depth * cam.zoom * 0.6);
+  const sq = world.sqMap.get(key(Math.floor(wx / W), Math.floor(wy2 / W)));
+  if (sq && pointInPoly(wx, wy2, sq.poly)) return { kind: 'sq', ref: sq };
+  return null;
+}
+function handleTap(px, py) {
+  sound.unlock();
+  const hit = hitTest(px, py);
+  if (!hit) { closeSheet(); return; }
+  selected = hit;
+  if (hit.kind === 'oct') openOctSheet(hit.ref); else openSquareSheet(hit.ref);
+}
+
+/* =====================================================================
+ * 7. UI – Topbar, Sheets, Dialoge, Sound
+ * ===================================================================== */
+const $ = id => document.getElementById(id);
+const sheet = $('sheet'), sheetInner = $('sheetInner');
+let sheetRefresh = null;
+const COIN_SVG = '<svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f2b631"/><circle cx="12" cy="12" r="7" fill="#f7cd5c"/></svg>';
+const T_OK = () => state.settings.dialect ? 'Des goht' : 'OK';
+
+function updateHUD() {
+  $('coins').textContent = fmt(state.coins);
+  $('pearls').textContent = fmt(state.pearls);
+  $('income').textContent = fmtRate(incomePerSecond());
+  if (sheetRefresh) sheetRefresh();
+}
+
+function openSheet(html, refresh) {
+  sheetInner.innerHTML = '<div class="grip"></div>' + html;
+  sheetRefresh = refresh || null;
+  sheet.classList.add('open');
+  if (refresh) refresh();
+}
+function closeSheet() { sheet.classList.remove('open'); sheetRefresh = null; selected = null; }
+
+function openOctSheet(o) {
+  const ft = CONFIG.fieldTypes[o.type];
+  if (o.unlocked) {
+    openSheet(`
+      <div class="sheet-head"><div class="badge" style="background:${ft.top};font-size:28px">${ft.icon}</div>
+        <div><h2>${ft.name}</h2><p>${ft.desc}</p></div></div>
+      <div class="sheet-body">
+        <div class="stars">${'<span></span>'.repeat(6)}</div>
+        <div class="note">Gebäude, Produktion und Ausbaustufen folgen in Meilenstein 2.<br>Feld ${o.col + 1}/${o.row + 1}</div>
+      </div>
+      <button class="secbtn" id="sheetClose">${T_OK()}</button>`);
+    $('sheetClose').onclick = closeSheet;
+    return;
+  }
+  const can = isUnlockable(o);
+  openSheet(`
+    <div class="sheet-head"><div class="badge" style="background:${CONFIG.fog.top};font-size:28px">☁️</div>
+      <div><h2>Unerforschtes Gebiet</h2><p>${can ? 'Darunter liegt: ' + ft.name : 'Noch zu weit weg'}</p></div></div>
+    <div class="sheet-body"><div class="note">${can ? ft.desc : 'Schalte zuerst ein angrenzendes Feld frei.'}</div></div>
+    ${can ? `<button class="bigbtn" id="unlockBtn">Freischalten ${COIN_SVG}<span id="unlockCost"></span></button><div class="missing" id="unlockMissing"></div>` : `<button class="secbtn" id="sheetClose">${T_OK()}</button>`}
+  `, can ? () => {
+    const cost = unlockCost(), btn = $('unlockBtn');
+    if (!btn) return;
+    $('unlockCost').textContent = fmt(cost);
+    btn.disabled = state.coins < cost;
+    $('unlockMissing').textContent = btn.disabled ? 'Es fehlen noch ' + fmt(cost - state.coins) + ' Münzen' : '';
+  } : null);
+  if (can) $('unlockBtn').onclick = () => { if (tryUnlock(o)) { selected = { kind: 'oct', ref: o }; openOctSheet(o); updateHUD(); } };
+  else $('sheetClose').onclick = closeSheet;
+}
+
+function openSquareSheet(sq) {
+  const kind = squareKind(sq);
+  const names = { fog: ['Nebelpfad', 'Wird sichtbar, sobald ein angrenzendes Feld frei ist.'], path: ['Feldweg', 'Verbindet Felder. Hier fahren später Karren.'], road: ['Straße', 'Verbindung zwischen freien Feldern. Später auch Bonusfeld möglich.'], buoy: ['Boje', 'Wasserweg für Boote.'] };
+  const [n, d] = names[kind];
+  openSheet(`<div class="sheet-head"><div class="badge" style="background:#eee2c2;font-size:26px">🛤️</div><div><h2>${n}</h2><p>Verbindungsfeld</p></div></div>
+    <div class="sheet-body"><div class="note">${d}</div></div><button class="secbtn" id="sheetClose">${T_OK()}</button>`);
+  $('sheetClose').onclick = closeSheet;
+}
+
+function openModal(html) { $('modalBox').innerHTML = html; $('modal').classList.add('open'); }
+function closeModal() { $('modal').classList.remove('open'); }
+$('modal').addEventListener('pointerdown', e => { if (e.target.id === 'modal') closeModal(); });
+
+function openSettings() {
+  openModal(`<h2>Einstellungen</h2>
+    <div class="row">Ton <button class="toggle ${state.settings.sound ? 'on' : ''}" id="tSound" aria-label="Ton"></button></div>
+    <div class="row">Dialekt (Schwäbisch) <button class="toggle ${state.settings.dialect ? 'on' : ''}" id="tDialect" aria-label="Dialekt"></button></div>
+    <button class="secbtn" id="debugCoins">Debug: +${fmt(CONFIG.m1.debugCoins)} Münzen</button>
+    <button class="secbtn danger" id="resetBtn">Spielstand zurücksetzen</button>
+    <button class="secbtn" id="closeSettings">${T_OK()}</button>`);
+  $('tSound').onclick = e => { state.settings.sound = !state.settings.sound; e.target.classList.toggle('on', state.settings.sound); save(); };
+  $('tDialect').onclick = e => { state.settings.dialect = !state.settings.dialect; e.target.classList.toggle('on', state.settings.dialect); save(); };
+  $('debugCoins').onclick = () => { state.coins += CONFIG.m1.debugCoins; updateHUD(); toast('+' + fmt(CONFIG.m1.debugCoins) + ' Münzen'); };
+  $('resetBtn').onclick = () => {
+    if (!confirm('Wirklich den gesamten Spielstand löschen?')) return;
+    try { localStorage.removeItem(CONFIG.saveKey); } catch (e) { /* ignorieren */ }
+    state = newState(); buildWorld(); resize(); centerCamera(); closeModal(); closeSheet(); updateHUD(); toast('Neues Spiel gestartet');
+  };
+  $('closeSettings').onclick = closeModal;
+}
+
+let toastTimer = 0;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+document.querySelectorAll('#bottombar button').forEach(b => b.addEventListener('click', () => {
+  sound.unlock();
+  const act = b.dataset.act;
+  if (act === 'settings') return openSettings();
+  const ms = { upgrades: 3, balloons: 3, market: 2, goals: 3 }[act];
+  toast(`Kommt in Meilenstein ${ms}`);
+}));
+
+// Prozeduraler Ton (WebAudio)
+const sound = {
+  ctx: null,
+  unlock() {
+    if (this.ctx || !state.settings.sound) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) { try { this.ctx = new AC(); } catch (e) { this.ctx = null; } }
+  },
+  pling(freq = 880) {
+    if (!state.settings.sound) return;
+    this.unlock();
+    const a = this.ctx; if (!a) return;
+    if (a.state === 'suspended') a.resume();
+    const t = a.currentTime, o = a.createOscillator(), g = a.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(freq, t); o.frequency.exponentialRampToValueAtTime(freq * 1.5, t + 0.08);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.18, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.4);
+  },
+};
+function vibrate(ms) { if (navigator.vibrate) try { navigator.vibrate(ms); } catch (e) { /* ignorieren */ } }
+
+/* =====================================================================
+ * 8. SAVE / LOAD
+ * ===================================================================== */
+const MIGRATIONS = {
+  // Beispiel: 1: s => { s.neuesFeld = 0; s.saveVersion = 2; return s; },
+};
+function migrate(s) {
+  while (s.saveVersion < CONFIG.saveVersion) {
+    const m = MIGRATIONS[s.saveVersion];
+    if (!m) throw new Error('Keine Migration für Version ' + s.saveVersion);
+    s = m(s);
+  }
+  return s;
+}
+function save() {
+  if (!state) return;
+  state.lastSeen = Date.now();
+  state.camera = { x: cam.x, y: cam.y, zoom: cam.zoom / fitZoom };
+  try { localStorage.setItem(CONFIG.saveKey, JSON.stringify(state)); } catch (e) { /* Speicher voll / privat */ }
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(CONFIG.saveKey);
+    if (!raw) return null;
+    const s = migrate(JSON.parse(raw));
+    return Object.assign(newState(), s);
+  } catch (e) {
+    console.warn('Spielstand konnte nicht geladen werden', e);
+    return null;
+  }
+}
+
+/* =====================================================================
+ * 9. MAIN LOOP & BOOT
+ * ===================================================================== */
+function centerCamera() {
+  const t = world.octs.find(o => o.unlocked) || world.octs[0];
+  cam.x = t.cx; cam.y = t.cy * T; cam.zoom = fitZoom * CONFIG.camera.startZoom;
+  clampCamera();
+}
+
+let acc = 0, lastFrame = performance.now(), hudTimer = 0, saveTimer = 0;
+function frame(now) {
+  let dt = Math.min(1, (now - lastFrame) / 1000);
+  lastFrame = now;
+  acc += dt;
+  let ticks = 0;
+  while (acc >= DT && ticks < CONFIG.maxTicksPerFrame) { simTick(DT); acc -= DT; ticks++; }
+  if (ticks === CONFIG.maxTicksPerFrame) acc = 0;
+
+  // Pan-Trägheit
+  if (!gesture && (Math.abs(cam.vx) > 0.01 || Math.abs(cam.vy) > 0.01)) {
+    cam.x += cam.vx; cam.y += cam.vy;
+    cam.vx *= CONFIG.camera.friction; cam.vy *= CONFIG.camera.friction;
+    clampCamera();
+  }
+
+  hudTimer += dt; if (hudTimer > 0.2) { hudTimer = 0; updateHUD(); }
+  saveTimer += dt; if (saveTimer > CONFIG.autosaveSeconds) { saveTimer = 0; save(); }
+
+  render(now);
+  requestAnimationFrame(frame);
+}
+
+function boot() {
+  state = load() || newState();
+  buildWorld();
+  resize();
+  if (state.camera) {
+    cam.x = state.camera.x; cam.y = state.camera.y; cam.zoom = state.camera.zoom * fitZoom; clampCamera();
+  } else centerCamera();
+  updateHUD();
+  window.addEventListener('resize', resize);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) save(); else lastFrame = performance.now();
+  });
+  window.addEventListener('pagehide', save);
+  $('loaderQuote').textContent = CONFIG.quotes[Math.floor(Math.random() * CONFIG.quotes.length)];
+  setTimeout(() => $('loader').classList.add('hide'), 700);
+  requestAnimationFrame(t => { lastFrame = t; frame(t); });
+}
+boot();
+</script>
+</body>
+</html>
