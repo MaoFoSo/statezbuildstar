@@ -70,7 +70,10 @@ Sq = {
   - Event-Timer
   - Transportpunkte
 - Rendering liest nur den State und interpoliert Animationen über `performance.now()`.
-- **Offline-Ertrag** (Meilenstein 2): Beim Laden wird `Δt = now − lastSeen` auf `offlineCap` begrenzt. Bei großen Δt wird nicht Tick für Tick simuliert, sondern über die analytische Rate gerechnet (Einnahmen pro Sekunde im eingeschwungenen Zustand × Δt). Danach erscheint der Dialog.
+- **Offline-Ertrag** (Meilenstein 2): Beim Laden und bei der Rückkehr in den Tab wird `Δt = now − lastSeen` auf `offline.capHours` begrenzt. Danach erscheint der Dialog.
+  - Abweichung vom ursprünglichen Plan: Statt einer analytischen Rate läuft dieselbe `simTick`-Funktion im stillen Modus mit groben Schritten (`offline.stepSeconds` = 0,5 s).
+  - Das bildet Lieferketten, Reserven und volle Lager exakt ab.
+  - Kosten bei 2 h: 14.400 Schritte × ca. 46 Felder, also wenige Millisekunden.
 - Bei verstecktem Tab pausiert das Rendering. Die Zeit wird über `lastSeen` nachgeholt.
 
 ## Speicherformat
@@ -90,11 +93,16 @@ Sq = {
 }
 ```
 
-Ab M2/M3 kommen dazu:
+Seit M2 (`saveVersion` 2):
+
+- `fields[k].b = { k: Gebäudeart, l: Stufe 1–6, p: Fortschritt 0–1, a: laufende Chargengröße (Verarbeitung) }`
+- `inventory: { ware: menge }`
+- `market: { sell: { ware: bool } }`
+- `stats: { unlocks, earned, produced: { ware: menge }, regionDone }`
+
+Ab M3 kommen dazu:
 
 - `globalUpgrades`
-- `market: {sellToggle}`
-- `inventory`
 - `goals`
 - `balloons`
 
@@ -108,8 +116,8 @@ Regeln:
 
 | # | Inhalt | Status |
 |---|--------|--------|
-| 1 | Raster & Steuerung: 4.8.8-Rendering, Pan/Pinch/Tap, exakter Hit-Test, Felder freischalten mit Nebel und Animation, Grund-UI (Topbar, Bottom-Bar, Bottom-Sheet), einfaches Speichern der freigeschalteten Felder | ✅ in Arbeit |
-| 2 | Wirtschaft MVP: Oberschwaben mit 3 Ketten (Holz → Bretter → Möbel, Kies → Beton, Milch → Butter), 6 Ausbaustufen, Lager/Verkauf mit Schalter, Transportpunkte auf Wegen, Speichern/Laden/Export/Import, Offline-Ertrag mit Dialog | – |
+| 1 | Raster & Steuerung: 4.8.8-Rendering, Pan/Pinch/Tap, exakter Hit-Test, Felder freischalten mit Nebel und Animation, Grund-UI (Topbar, Bottom-Bar, Bottom-Sheet), einfaches Speichern der freigeschalteten Felder | ✅ fertig |
+| 2 | Wirtschaft MVP: Oberschwaben mit 3 Ketten (Holz → Bretter → Möbel, Kies → Beton, Milch → Butter), 6 Ausbaustufen, Lager/Verkauf mit Schalter, Transportpunkte auf Wegen, Speichern/Laden/Export/Import, Offline-Ertrag mit Dialog | ✅ fertig |
 | 3 | Meta: globale Upgrades, Seeperlen, Ballonstation, Ziele/Tutorial, Lieferketten-Übersicht | – |
 | 4 | Luftschiff & Regionswechsel (Prestige), Region 2 Nordufer mit Wasser, Fähre, Booten | – |
 | 5+ | Regionen 3–6, Events (Föhn, Herbstnebel, Feste), Quadrat-Bonusfelder, Pfahlbauten, Dialekt, PWA (Manifest, Service Worker, Icons) | – |
@@ -119,3 +127,17 @@ Regeln:
 - Damit man das Freischalten testen kann, gibt es ein **vorläufiges Einkommen**: `CONFIG.m1.incomePerField` Münzen pro Sekunde je freiem Feld. Dazu kommt in den Einstellungen ein Debug-Button „+1.000 Münzen“. Beides wird in Meilenstein 2 durch die echte Wirtschaft ersetzt.
 - Freischaltbar sind nur Felder, die über eine gerade Kante (N/O/S/W) an ein freies Feld grenzen.
 - Kosten: `CONFIG.unlock.base × CONFIG.unlock.growth^(freigeschaltet − Startfelder)`.
+
+### Wirtschaftsmodell (Meilenstein 2)
+
+- **Rohstoffbetriebe** (Holzfäller, Kieswerk, Milchhof) entstehen beim Freischalten automatisch. Pro Zyklus liefern sie `levels.yield[L]` Einheiten, die Zykluszeit ist `cycle / levels.speed[L]`.
+- **Verarbeitungsbetriebe** stehen auf Bauplätzen. Sie starten eine Charge mit bis zu `levels.yield[L]` Einheiten, sobald genug Eingangsware im Lager liegt.
+- **Marktplatz** (Altstadt): Gebühren-Einkommen `market.tax[L]` und Verkaufsbonus `market.bonus[L]` auf alle Preise.
+- **Lager:** ein globaler Bestand pro Ware.
+  - Verkauf an: Alles über der **Reserve** wird sofort verkauft. Die Reserve ist die Summe der maximalen Chargen aller Abnehmer.
+  - Verkauf aus: Es wird bis `storage.cap` eingelagert. Ist das Lager voll, hält der Erzeuger an.
+- **Tick-Reihenfolge:**
+  1. Verarbeiter starten bzw. schließen Chargen ab.
+  2. Rohstoffbetriebe liefern.
+  3. Überschüsse werden verkauft.
+- **Balancing:** Ein gieriger Bot, der per Playwright direkt `simTick` antreibt, braucht für Oberschwaben ca. 27 Minuten. Das erste Upgrade ist direkt nach der ersten Freischaltung möglich.
