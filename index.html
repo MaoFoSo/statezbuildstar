@@ -327,6 +327,11 @@ const CONFIG = {
     wool:       { name: 'Wolle',          icon: '🧶', price: 9,   color: '#f1ece2' },
     cloth:      { name: 'Stoff',          icon: '🧵', price: 110, color: '#5b7fb8' },
     parts:      { name: 'Maschinenteile', icon: '⚙️', price: 330, color: '#6b7f90' },
+    // Region 5: Thurgau & St. Gallen
+    concentrate: { name: 'Saftkonzentrat',     icon: '🍹', price: 90,  color: '#e2932f' },
+    lace:        { name: 'Stickerei',          icon: '🪡', price: 600, color: '#f4eef8' },
+    watchparts:  { name: 'Uhrenteile',         icon: '🔩', price: 14,  color: '#b8a36a' },
+    precision:   { name: 'Präzisionsmechanik', icon: '⌚', price: 260, color: '#4b5b68' },
   },
   // field = auf welchem Feldtyp; in = Eingang pro Einheit; cycle = Sekunden auf Stufe 1
   buildings: {
@@ -364,6 +369,12 @@ const CONFIG = {
     shepherd:   { name: 'Schäferei',       icon: '🐑', field: 'sheep', out: 'wool',  cycle: 4, upBase: 450 },
     mason:      { name: 'Steinmetz',       icon: '🏛️', field: 'plot', in: { stone: 3 },             out: 'ashlar', cycle: 10, build: 1200,  upBase: 2000,  wall: '#e4ded2', roof: '#7d756a', accent: '#c9c2b4' },
     weaver:     { name: 'Weberei',         icon: '🧵', field: 'plot', in: { wool: 3, power: 1 },    out: 'cloth',  cycle: 12, build: 3000,  upBase: 4500,  wall: '#f3ead8', roof: '#3f5f9a', accent: '#5b7fb8' },
+    // Region 5
+    plantation: { name: 'Großplantage',    icon: '🍏', field: 'bigorchard', out: 'apples',     cycle: 2, upBase: 600 },
+    clockshop:  { name: 'Uhrmacher',       icon: '🔩', field: 'workshop',   out: 'watchparts', cycle: 5, upBase: 900 },
+    juicery:    { name: 'Saftkelterei',    icon: '🍹', field: 'plot', in: { apples: 6 },                 out: 'concentrate', cycle: 9,  build: 2500,  upBase: 4000,  wall: '#f7ead0', roof: '#c0503f', accent: '#e2932f' },
+    embroidery: { name: 'Stickerei',       icon: '🪡', field: 'plot', in: { cloth: 2 },                  out: 'lace',        cycle: 20, build: 15000, upBase: 20000, wall: '#fbf6ee', roof: '#8a6fd1', accent: '#d9c8f0' },
+    finemech:   { name: 'Feinmechanik',    icon: '⌚', field: 'plot', in: { watchparts: 3, power: 1 },   out: 'precision',   cycle: 14, build: 8000,  upBase: 12000, wall: '#eef1f4', roof: '#2f5f8a', accent: '#b8a36a' },
     machinery:  { name: 'Maschinenbau',    icon: '⚙️', field: 'plot', in: { ashlar: 1, power: 3 },  out: 'parts',  cycle: 16, build: 12000, upBase: 16000, wall: '#d5dade', roof: '#4b5b68', accent: '#6b7f90', smoky: true },
   },
 
@@ -384,6 +395,8 @@ const CONFIG = {
     alp:        { name: 'Alpweide',     desc: 'Rohstoff: Milch von Allgäuer Kühen',            top: '#b4e07a', side: '#7fb34c', icon: '🐮', producer: 'alpfarm' },
     rock:       { name: 'Steinbruch',   desc: 'Rohstoff: Stein aus dem Berg',   top: '#cfc9bd', side: '#a39c8e', icon: '🏔️', producer: 'breaker' },
     sheep:      { name: 'Schafweide',   desc: 'Rohstoff: Wolle',                top: '#bfe28c', side: '#8bb65a', icon: '🐑', producer: 'shepherd' },
+    bigorchard: { name: 'Großplantage', desc: 'Rohstoff: Äpfel – in langen Reihen, schneller als jeder Obstgarten', top: '#9fd472', side: '#6ea646', icon: '🍏', producer: 'plantation' },
+    workshop:   { name: 'Uhrmacherdorf', desc: 'Rohstoff: Uhrenteile aus kleinen Werkstätten', top: '#e3dccb', side: '#b9ae96', icon: '🔩', producer: 'clockshop' },
     river:      { name: 'Gebirgsbach',  desc: 'Energie: Wasserkraft liefert Strom. Strom lässt sich nicht einlagern – was keiner braucht, geht ins Netz.', top: '#a9d98a', side: '#76a95a', icon: '⚡', producer: 'hydro' },
   },
   fog: { top: '#e9eef3', side: '#c3ccd5', puff: '#f7f9fb', edge: '#d6dee6' },
@@ -567,11 +580,56 @@ const CONFIG = {
       ],
       airship: { need: { parts: 12, cloth: 30, ashlar: 40 }, pearls: 45 },
     },
+    {
+      id: 'thurgau',
+      name: 'Thurgau & St. Gallen',
+      intro: 'Hafenstädte am Südufer, endlose Obstgärten und am Horizont der mächtige Gipfel. Großplantagen liefern Äpfel für Saftkonzentrat, Webereien Stoff für feine Stickerei. In den Uhrmacherdörfern entstehen Uhrenteile – mit Strom wird daraus Präzisionsmechanik.',
+      bg: ['#b8dcf2', '#e8f1d8'],
+      landmark: 'harbor',
+      mountains: { hts: [0, 50, 35, 70, 60, 110, 175, 120, 70, 85, 50, 75, 35, 0], color: '#b9cfe0' },
+      // Legende: T=Hafenstadt  Q=Großplantage  O=Schafweide  U=Uhrmacherdorf  E=Gebirgsbach (Strom)  B=Bauplatz  ~=See (Fähre)  L=Luftschiffplatz
+      map: [
+        '..QQQOO..',
+        '..QQBOOE.',
+        '.UBQBOBE.',
+        '.UUBTBOO.',
+        'LBUBQBEO.',
+        '.QBUQB~~.',
+        '..~~~~~~.',
+      ],
+      startUnlocked: ['T'],
+      startCoins: 2500,
+      unlock: { base: 380, growth: 1.22 },
+      market: { cost: 50, tax: 50 },
+      buildings: ['juicery', 'weaver', 'embroidery', 'finemech', 'balloon', 'ferry'],
+      chains: [['apples', 'concentrate'], ['wool', 'cloth', 'lace'], ['watchparts', 'precision'], ['power']],
+      balloon: [{ apples: 40, wool: 30 }, { concentrate: 10, watchparts: 30 }, { cloth: 8, power: 25 }, { precision: 4, concentrate: 15 }, { lace: 2, cloth: 10 }],
+      goals: [
+        { t: 'unlock', n: 1, text: 'Schalte ein Feld frei', tip: 'Die Großplantage neben der Hafenstadt liefert Äpfel.', coins: 1200, pearls: 1 },
+        { t: 'build', k: 'juicery', n: 1, text: 'Baue eine Saftkelterei', tip: 'Viele Äpfel werden zu wertvollem Saftkonzentrat.', pearls: 2 },
+        { t: 'build', k: 'clockshop', n: 1, text: 'Erschließe ein Uhrmacherdorf', pearls: 2 },
+        { t: 'build', k: 'hydro', n: 1, text: 'Nimm ein Wasserkraftwerk in Betrieb', tip: 'Die Feinmechanik braucht Strom.', pearls: 2 },
+        { t: 'build', k: 'finemech', n: 1, text: 'Baue eine Feinmechanik', pearls: 3 },
+        { t: 'unlock', n: 8, text: 'Schalte 8 Felder frei', pearls: 2 },
+        { t: 'build', k: 'balloon', n: 1, text: 'Baue eine Ballonstation', pearls: 2 },
+        { t: 'build', k: 'weaver', n: 1, text: 'Baue eine Weberei', tip: 'Wolle und Strom werden zu Stoff – die Grundlage für Stickerei.', pearls: 3 },
+        { t: 'level', k: 'market', lvl: 3, n: 1, text: 'Baue den Marktplatz auf Stufe 3', pearls: 3 },
+        { t: 'build', k: 'ferry', n: 1, text: 'Baue eine Fährstation', pearls: 3 },
+        { t: 'launch', n: 3, text: 'Starte 3 Heißluftballons', pearls: 4 },
+        { t: 'build', k: 'embroidery', n: 1, text: 'Baue eine Stickerei', tip: 'Feine Stickerei ist die wertvollste Ware am Südufer.', pearls: 4 },
+        { t: 'level', k: 'plantation', lvl: 4, n: 3, text: 'Baue 3 Großplantagen auf Stufe 4', pearls: 4 },
+        { t: 'earn', n: 20000000, text: 'Verdiene 20 Mio. Münzen', pearls: 5 },
+        { t: 'unlock', n: 30, text: 'Schalte 30 Felder frei', pearls: 5 },
+        { t: 'produce', g: 'lace', n: 12, text: 'Sticke 12 Spitzendecken', pearls: 6 },
+        { t: 'all', text: 'Erkunde Thurgau & St. Gallen', tip: 'Dann erscheint die Luftschiffhalle.', pearls: 6 },
+      ],
+      airship: { need: { lace: 10, precision: 20, concentrate: 40 }, pearls: 55 },
+    },
   ],
 
   quotes: ['Schaffe, schaffe, Häusle baue …', 'Felder werden vermessen …', 'Der Nebel zieht übers Schwäbische Meer …'],
 };
-const TYPE_BY_CHAR = { T: 'town', W: 'forest', K: 'gravel', M: 'pasture', B: 'plot', '~': 'water', L: 'hangar', P: 'hopgarden', R: 'vineyard', A: 'orchard', F: 'fishground', J: 'alp', E: 'river', S: 'rock', O: 'sheep' };
+const TYPE_BY_CHAR = { T: 'town', W: 'forest', K: 'gravel', M: 'pasture', B: 'plot', '~': 'water', L: 'hangar', P: 'hopgarden', R: 'vineyard', A: 'orchard', F: 'fishground', J: 'alp', E: 'river', S: 'rock', O: 'sheep', Q: 'bigorchard', U: 'workshop' };
 
 /* =====================================================================
  * 2. UTILS – Format, Mathe, Geometrie
@@ -1607,6 +1665,47 @@ function drawDecor(o, now) {
       if (L >= 6) flag(x0 + 24 * z, y0 + 10 * z, z, now, '#f2b631');
       break;
     }
+    case 'bigorchard': {
+      // lange Baumreihen, Kisten, Traktor ab Stufe 3
+      const rows = 3, per = Math.min(5, 2 + Math.ceil(L / 2));
+      for (let r = 0; r < rows; r++) for (let i = 0; i < per; i++) {
+        const tx = x0 + (-22 + i * (44 / Math.max(1, per - 1)) + (r % 2) * 3) * z, ty = y0 + (-10 + r * 10) * z;
+        ctx.fillStyle = '#8a5a33'; ctx.fillRect(tx - 0.8 * z, ty - 4 * z, 1.6 * z, 4 * z);
+        ctx.fillStyle = r % 2 ? '#5aa83a' : '#4f9a33'; ctx.beginPath(); ctx.arc(tx, ty - 6.5 * z, 4.2 * z, 0, 7); ctx.fill();
+        ctx.fillStyle = '#d9452f'; ctx.beginPath(); ctx.arc(tx + 1.5 * z, ty - 6 * z, 1.1 * z, 0, 7); ctx.fill();
+      }
+      if (L >= 2) { ctx.fillStyle = '#a0703f'; for (let i = 0; i < Math.min(4, L - 1); i++) { roundRect(x0 + (-24 + i * 6) * z, y0 + 16 * z, 5 * z, 4 * z, z); ctx.fill(); } }
+      if (L >= 3) { // Traktor fährt die Reihe ab
+        const tx = x0 + Math.sin(now / 2500 + o.col) * 18 * z, ty = y0 + 13 * z;
+        ctx.fillStyle = '#3f8f3a'; ctx.fillRect(tx - 4 * z, ty - 5 * z, 8 * z, 4 * z); ctx.fillRect(tx - 1 * z, ty - 8 * z, 4 * z, 3 * z);
+        ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(tx - 2.5 * z, ty, 2.2 * z, 0, 7); ctx.arc(tx + 3 * z, ty, 1.5 * z, 0, 7); ctx.fill();
+      }
+      if (L >= 6) flag(x0 + 24 * z, y0 + 12 * z, z, now, '#f2b631');
+      break;
+    }
+    case 'workshop': {
+      // kleine Werkstatthäuser mit großen Fenstern, Turmuhr ab Stufe 4
+      const hs = [[-12, 6, '#f6efe0', '#2f5f8a'], [12, 12, '#efe6d2', '#6f4a8e'], [14, -8, '#f6efe0', '#9c5b44'], [-14, -10, '#efe6d2', '#2f5f8a']];
+      hs.slice(0, Math.min(hs.length, 1 + Math.ceil(L / 2))).forEach(([dx, dy, w, r]) => {
+        house(x0 + dx * z, y0 + dy * z, 14 * z, 9 * z, w, r);
+        ctx.fillStyle = '#bfe3f2'; ctx.fillRect(x0 + (dx - 5) * z, y0 + (dy - 7) * z, 10 * z, 4 * z);
+      });
+      if (L >= 4) {
+        const cx = x0 + 2 * z, cy = y0 - 4 * z;
+        ctx.fillStyle = '#e6dcc6'; ctx.fillRect(cx - 4 * z, cy - 20 * z, 8 * z, 22 * z);
+        ctx.fillStyle = '#2f5f8a'; ctx.beginPath(); ctx.moveTo(cx - 5 * z, cy - 20 * z); ctx.lineTo(cx, cy - 28 * z); ctx.lineTo(cx + 5 * z, cy - 20 * z); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx, cy - 15 * z, 3 * z, 0, 7); ctx.fill();
+        const a = now / 1000;
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 0.7 * z; ctx.beginPath(); ctx.moveTo(cx, cy - 15 * z); ctx.lineTo(cx + Math.cos(a) * 2.4 * z, cy - 15 * z + Math.sin(a) * 2.4 * z); ctx.moveTo(cx, cy - 15 * z); ctx.lineTo(cx + Math.cos(a / 12) * 1.6 * z, cy - 15 * z + Math.sin(a / 12) * 1.6 * z); ctx.stroke();
+      }
+      // Zahnrad
+      const gx = x0 - 22 * z, gy = y0 + 16 * z, rot = now / 900;
+      ctx.fillStyle = '#b8a36a'; ctx.beginPath();
+      for (let i = 0; i < 16; i++) { const a = rot + i * Math.PI / 8, r = (i % 2 ? 4 : 3) * z; ctx.lineTo(gx + Math.cos(a) * r, gy + Math.sin(a) * r * T); }
+      ctx.closePath(); ctx.fill();
+      if (L >= 6) flag(x0 + 24 * z, y0 + 4 * z, z, now, '#f2b631');
+      break;
+    }
     case 'river': {
       // Bach quer über das Feld, Kraftwerk mit Wasserrad, Mast mit Leitung
       ctx.strokeStyle = '#7cc3e6'; ctx.lineWidth = 7 * z; ctx.lineCap = 'round';
@@ -1709,6 +1808,25 @@ function drawLandmark(kind, x0, y0, z, now, L, tower) {
       ctx.fillStyle = '#c0503f'; ctx.fillRect(gx - 2.5 * z, gy + 1 * z, 5 * z, 4 * z);
       tower(x0 - 6 * z, 18);
       flag(x0 - 6 * z, y0 - 32 * z, z, now, fc);
+      break;
+    }
+    case 'harbor': {
+      // Hafenbecken mit Kai, Lagerhaus und Hafenkran; daneben ein wuchtiger Burgturm
+      ctx.fillStyle = '#7cc3e6'; ctx.beginPath(); ctx.ellipse(x0 + 16 * z, y0 + 3 * z, 14 * z, 6 * z, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#c9b48a'; ctx.fillRect(x0 + 2 * z, y0 - 3 * z, 26 * z, 3 * z);
+      house(x0 + 22 * z, y0 - 3 * z, 9 * z, 7 * z, '#e9dcc0', '#9c5b44');
+      ctx.strokeStyle = '#e8573f'; ctx.lineWidth = 1.6 * z;
+      const sw = Math.sin(now / 1500) * 3 * z;
+      ctx.beginPath(); ctx.moveTo(x0 + 10 * z, y0 - 3 * z); ctx.lineTo(x0 + 10 * z, y0 - 26 * z); ctx.lineTo(x0 + 22 * z + sw, y0 - 22 * z); ctx.stroke();
+      ctx.strokeStyle = '#4b5b68'; ctx.lineWidth = 0.7 * z; ctx.beginPath(); ctx.moveTo(x0 + 20 * z + sw, y0 - 22 * z); ctx.lineTo(x0 + 20 * z + sw, y0 - 12 * z); ctx.stroke();
+      ctx.fillStyle = '#a0703f'; ctx.fillRect(x0 + 18 * z + sw, y0 - 12 * z, 4 * z, 3 * z);
+      // Burgturm mit Zinnen
+      const bx = x0 - 8 * z, by = y0 + 2 * z;
+      ctx.fillStyle = '#e6dcc6'; ctx.fillRect(bx - 7 * z, by - 26 * z, 14 * z, 26 * z);
+      ctx.fillStyle = '#cfc2a6'; ctx.fillRect(bx, by - 26 * z, 7 * z, 26 * z);
+      ctx.fillStyle = '#e6dcc6'; for (let i = 0; i < 4; i++) ctx.fillRect(bx - 7 * z + i * 4 * z, by - 29 * z, 2.4 * z, 3 * z);
+      ctx.fillStyle = '#4b3a2a'; ctx.fillRect(bx - 1.5 * z, by - 18 * z, 3 * z, 4 * z);
+      flag(bx, by - 29 * z, z, now, fc);
       break;
     }
     default:

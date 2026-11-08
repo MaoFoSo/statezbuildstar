@@ -18,11 +18,17 @@
   - Fährstationen im Rheindelta, eigene Ballon-Ladungen, 16 Ziele, Marktplatz-Faktor ×20
   - Luftschiff: 12 Maschinenteile, 30 Stoff, 40 Werkstein
   - neue prozedurale Grafik: Steinbruch mit Felswand, Blöcken und Kran, Schafweide mit Schäferhütte; Bühne im See mit Scheinwerfern und Seilbahn zum Hausberg
+- **Region 5: Thurgau & St. Gallen** (45 Felder + Luftschiffplatz, Südufer):
+  - Rohstoffe: Äpfel (Großplantage, schneller als ein Obstgarten), Wolle (Schafweide), Uhrenteile (Uhrmacherdorf), Strom (Gebirgsbach)
+  - Ketten: Äpfel → Saftkonzentrat (Saftkelterei) · Wolle + Strom → Stoff (Weberei) → Stickerei · Uhrenteile + Strom → Präzisionsmechanik (Feinmechanik) · Strom
+  - Fährstationen, eigene Ballon-Ladungen, 17 Ziele, Marktplatz-Faktor ×50
+  - Luftschiff: 10 Stickerei, 20 Präzisionsmechanik, 40 Saftkonzentrat
+  - neue prozedurale Grafik: Großplantagen mit Baumreihen und Traktor, Uhrmacherdorf mit Turmuhr und Zahnrad; Hafen mit Kran und Burgturm, großer Gipfel im Panorama
 - Betriebe können **mehrere Eingangswaren** haben; Bauplatz-Auswahl, Status und Hinweise zeigen alle Eingänge
 - Jede Region kann ein eigenes **Bergpanorama** (`mountains`) und ein **Wahrzeichen** der Hauptstadt (`landmark`) haben
 
 ### Geändert
-- Balancing: Test-Bot braucht für Oberschwaben ca. 23 min, Nordufer ca. 34, Allgäu ca. 43, Vorarlberg ca. 53
+- Balancing: Test-Bot braucht für Oberschwaben ca. 23 min, Nordufer ca. 34, Allgäu ca. 43, Vorarlberg ca. 53, Thurgau & St. Gallen ca. 61
 
 ## [0.4.0] – Meilenstein 4: Luftschiff & Regionswechsel
 
