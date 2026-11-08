@@ -316,6 +316,11 @@ const CONFIG = {
     brandy:     { name: 'Apfelbrand',  icon: '🥃', price: 260, color: '#c9862f' },
     fish:       { name: 'Felchen',     icon: '🐟', price: 5,   color: '#9fb8c8' },
     smokedfish: { name: 'Räucherfisch', icon: '🍢', price: 38, color: '#b0703a' },
+    // Region 3: Allgäu & Lindau. energy = Energie: lässt sich nicht einlagern, Überschuss geht ins Netz
+    power:      { name: 'Strom',       icon: '⚡', price: 6,   color: '#ffd23f', energy: true },
+    cheese:     { name: 'Bergkäse',    icon: '🧀', price: 130, color: '#f5c542' },
+    shingles:   { name: 'Schindeln',   icon: '🪵', price: 32,  color: '#c08a52' },
+    timber:     { name: 'Holzbau',     icon: '🛖', price: 340, color: '#9c6b3e' },
   },
   // field = auf welchem Feldtyp; in = Eingang pro Einheit; cycle = Sekunden auf Stufe 1
   buildings: {
@@ -342,6 +347,12 @@ const CONFIG = {
     brewery:    { name: 'Brauerei',     icon: '🍺', field: 'plot', in: { hops: 3 },   out: 'beer',       cycle: 12, build: 900,  upBase: 1400, wall: '#f0dcb4', roof: '#2f6f4a', accent: '#a0703f' },
     winery:     { name: 'Weinkellerei', icon: '🍷', field: 'plot', in: { grapes: 3 }, out: 'wine',       cycle: 15, build: 2200, upBase: 3200, wall: '#efe4d2', roof: '#7a2f45', accent: '#7b4f9e' },
     distillery: { name: 'Brennerei',    icon: '🥃', field: 'plot', in: { cider: 2 },  out: 'brandy',     cycle: 20, build: 6000, upBase: 9000, wall: '#e6d3b0', roof: '#5d6b78', accent: '#c9862f' },
+    // Region 3
+    alpfarm:    { name: 'Alphof',          icon: '🐮', field: 'alp',   out: 'milk',  cycle: 3, upBase: 220 },
+    hydro:      { name: 'Wasserkraftwerk', icon: '⚡', field: 'river', out: 'power', cycle: 3, upBase: 300 },
+    shingler:   { name: 'Schindelmacher',  icon: '🪓', field: 'plot', in: { wood: 3 },              out: 'shingles', cycle: 8,  build: 500,  upBase: 800,  wall: '#efd9b4', roof: '#8a5a33', accent: '#c08a52' },
+    cheesery:   { name: 'Käserei',         icon: '🧀', field: 'plot', in: { milk: 3, power: 1 },    out: 'cheese',   cycle: 14, build: 1500, upBase: 2400, wall: '#ffffff', roof: '#3f7f5f', accent: '#f5c542' },
+    carpentry:  { name: 'Zimmerei',        icon: '🛖', field: 'plot', in: { shingles: 2, power: 1 }, out: 'timber',  cycle: 18, build: 6000, upBase: 9000, wall: '#e8c99a', roof: '#6b4a2a', accent: '#9c6b3e' },
   },
 
   fieldTypes: {
@@ -357,6 +368,9 @@ const CONFIG = {
     vineyard:   { name: 'Weinberg',     desc: 'Rohstoff: Trauben', top: '#c4d98a', side: '#93a95a', icon: '🍇', producer: 'vintner' },
     orchard:    { name: 'Obstgarten',   desc: 'Rohstoff: Äpfel',   top: '#93cf6a', side: '#64a03e', icon: '🍎', producer: 'applefarm' },
     fishground: { name: 'Fischgrund',   desc: 'Rohstoff: Felchen. Boote bringen den Fang über die Bojen an Land.', top: '#6fb9df', side: '#4a8fb6', icon: '🐟', producer: 'fishery', water: true },
+    // Region 3
+    alp:        { name: 'Alpweide',     desc: 'Rohstoff: Milch von Allgäuer Kühen',            top: '#b4e07a', side: '#7fb34c', icon: '🐮', producer: 'alpfarm' },
+    river:      { name: 'Gebirgsbach',  desc: 'Energie: Wasserkraft liefert Strom. Strom lässt sich nicht einlagern – was keiner braucht, geht ins Netz.', top: '#a9d98a', side: '#76a95a', icon: '⚡', producer: 'hydro' },
   },
   fog: { top: '#e9eef3', side: '#c3ccd5', puff: '#f7f9fb', edge: '#d6dee6' },
   square: { path: '#e6d3a8', road: '#c9b48a', fog: '#dde4ea', grass: '#b9dd8a' },
@@ -451,11 +465,55 @@ const CONFIG = {
       ],
       airship: { need: { brandy: 12, wine: 25, beer: 40 }, pearls: 25 },
     },
+    {
+      id: 'allgaeu',
+      name: 'Allgäu & Lindau',
+      intro: 'Grüne Alpweiden, Bergwälder und die Inselstadt mit Leuchtturm und Löwe am Hafen. Neu ist die <b>Energie</b>: Wasserkraftwerke an den Gebirgsbächen liefern Strom. Strom lässt sich nicht einlagern – Käserei und Zimmerei brauchen ihn direkt, der Rest geht ins Netz.',
+      bg: ['#b3dcf0', '#e4f2d6'],
+      landmark: 'lighthouse',
+      mountains: { hts: [0, 80, 55, 125, 90, 150, 110, 165, 120, 140, 95, 130, 70, 0], color: '#bcd2e3' },
+      // Legende: T=Inselstadt  J=Alpweide  W=Bergwald  E=Gebirgsbach (Strom)  B=Bauplatz  ~=See (Fähre)  L=Luftschiffplatz
+      map: [
+        '..JJWWJ..',
+        '.WJBJWWJ.',
+        '.EBJBEWJ.',
+        'LJBWJBJE.',
+        '.EBJTBWE.',
+        '.~WB~BJ~.',
+        '..~~~~~..',
+      ],
+      startUnlocked: ['T'],
+      startCoins: 400,
+      unlock: { base: 120, growth: 1.22 },
+      market: { cost: 8, tax: 8 },
+      buildings: ['shingler', 'cheesery', 'carpentry', 'balloon', 'ferry'],
+      chains: [['milk', 'cheese'], ['wood', 'shingles', 'timber'], ['power']],
+      balloon: [{ milk: 30, wood: 30 }, { shingles: 12, power: 15 }, { cheese: 6, milk: 30 }, { power: 25, shingles: 15 }, { timber: 3, cheese: 8 }],
+      goals: [
+        { t: 'unlock', n: 1, text: 'Schalte ein Feld frei', tip: 'Die Alpweide neben der Inselstadt liefert Milch.', coins: 200, pearls: 1 },
+        { t: 'build', k: 'shingler', n: 1, text: 'Baue einen Schindelmacher', tip: 'Aus Bergholz werden Schindeln für die Dächer.', pearls: 2 },
+        { t: 'build', k: 'hydro', n: 1, text: 'Nimm ein Wasserkraftwerk in Betrieb', tip: 'Schalte einen Gebirgsbach frei. Strom ist die neue Energie-Ressource.', pearls: 2 },
+        { t: 'build', k: 'cheesery', n: 1, text: 'Baue eine Käserei', tip: 'Die Käserei braucht Milch und Strom.', pearls: 3 },
+        { t: 'unlock', n: 8, text: 'Schalte 8 Felder frei', pearls: 2 },
+        { t: 'build', k: 'balloon', n: 1, text: 'Baue eine Ballonstation', pearls: 2 },
+        { t: 'produce', g: 'cheese', n: 20, text: 'Käse 20 Laibe Bergkäse', pearls: 3 },
+        { t: 'level', k: 'hydro', lvl: 3, n: 2, text: 'Baue 2 Wasserkraftwerke auf Stufe 3', tip: 'Mehr Strom: Engpässe zeigt dir Lager → Lieferketten.', pearls: 3 },
+        { t: 'level', k: 'market', lvl: 3, n: 1, text: 'Baue den Marktplatz auf Stufe 3', pearls: 3 },
+        { t: 'build', k: 'ferry', n: 1, text: 'Baue eine Fährstation am Inselhafen', pearls: 3 },
+        { t: 'launch', n: 3, text: 'Starte 3 Heißluftballons', pearls: 4 },
+        { t: 'build', k: 'carpentry', n: 1, text: 'Baue eine Zimmerei', tip: 'Holzbau ist die wertvollste Ware im Allgäu.', pearls: 4 },
+        { t: 'earn', n: 1000000, text: 'Verdiene 1 Mio. Münzen', pearls: 5 },
+        { t: 'unlock', n: 30, text: 'Schalte 30 Felder frei', pearls: 5 },
+        { t: 'produce', g: 'timber', n: 15, text: 'Stelle 15 Holzbauten her', pearls: 6 },
+        { t: 'all', text: 'Erkunde das ganze Allgäu', tip: 'Dann erscheint die Luftschiffhalle.', pearls: 6 },
+      ],
+      airship: { need: { timber: 12, cheese: 30, power: 40 }, pearls: 35 },
+    },
   ],
 
   quotes: ['Schaffe, schaffe, Häusle baue …', 'Felder werden vermessen …', 'Der Nebel zieht übers Schwäbische Meer …'],
 };
-const TYPE_BY_CHAR = { T: 'town', W: 'forest', K: 'gravel', M: 'pasture', B: 'plot', '~': 'water', L: 'hangar', P: 'hopgarden', R: 'vineyard', A: 'orchard', F: 'fishground' };
+const TYPE_BY_CHAR = { T: 'town', W: 'forest', K: 'gravel', M: 'pasture', B: 'plot', '~': 'water', L: 'hangar', P: 'hopgarden', R: 'vineyard', A: 'orchard', F: 'fishground', J: 'alp', E: 'river' };
 
 /* =====================================================================
  * 2. UTILS – Format, Mathe, Geometrie
@@ -683,6 +741,8 @@ const upgradeCost = b => Math.ceil(def(b).upBase * Math.pow(CONFIG.levels.costGr
 const countKind = k => world.octs.filter(o => o.b && o.b.k === k).length;
 const atMax = k => CONFIG.buildings[k].max !== undefined && countKind(k) >= CONFIG.buildings[k].max;   // max = Höchstzahl pro Region
 const buildCost = k => (atMax(k) ? Infinity : Math.ceil(CONFIG.buildings[k].build * Math.pow(CONFIG.buildGrowth, countKind(k))));
+const isEnergy = g => !!CONFIG.goods[g].energy;   // Energie (Strom): kein Lager, Überschuss geht immer ins Netz
+const sellOn = g => isEnergy(g) || !!state.market.sell[g];
 const regionProduces = g => world.octs.some(o => o.unlocked && o.b && def(o.b).out === g);
 const regionGoods = () => world.region.chains.flat();
 
@@ -903,7 +963,7 @@ function tryBuild(o, k) {
 const DT = 1 / CONFIG.tickRate;
 
 // Darf eine Ware angenommen werden? Bei aktivem Verkauf immer, sonst nur mit Lagerplatz.
-function canAccept(g, n) { return state.market.sell[g] || (state.inventory[g] || 0) + n <= storageCap(); }
+function canAccept(g, n) { return sellOn(g) || (state.inventory[g] || 0) + n <= storageCap(); }
 // Lädt Waren aus dem Lager in eine Ladung (Ballon/Luftschiff), rate = Einheiten/s je Ware
 function loadCargo(c, need, rate, dt) {
   if (!c.load || cargoFull(c, need)) { c.t = 0; return; }
@@ -919,7 +979,7 @@ function loadCargo(c, need, rate, dt) {
 }
 // Verkauft alles über der Reserve (die Betriebe für ihre nächste Charge brauchen)
 function sellSurplus(g) {
-  if (!state.market.sell[g]) return 0;
+  if (!sellOn(g)) return 0;
   const n = (state.inventory[g] || 0) - (world.reserve[g] || 0);
   if (n <= 0) return 0;
   state.inventory[g] -= n;
@@ -1033,7 +1093,8 @@ function spawnTransport(o, d) {
     if (fx.dots.length >= C.maxDots) return;
     const path = findSourcePath(o, g);
     if (!path || path.len <= 0) continue;
-    fx.dots.push({ path, t0: performance.now(), dur: clamp(path.len / C.speed, C.minSeconds, C.maxSeconds) * 1000, color: CONFIG.goods[g].color });
+    const spark = isEnergy(g);
+    fx.dots.push({ path, spark, t0: performance.now(), dur: clamp(path.len / C.speed, C.minSeconds, C.maxSeconds) * 1000 * (spark ? 0.5 : 1), color: CONFIG.goods[g].color });
   }
 }
 
@@ -1096,10 +1157,12 @@ function drawBackground(now) {
   ctx.save();
   ctx.translate((vw / 2 - sx((b.minX + b.maxX) / 2)) * par, 0);
   const left = sx(b.minX - W * 3), right = sx(b.maxX + W * 3), span = right - left;
-  ctx.fillStyle = '#c9dbe8';
+  // Bergpanorama je Region (mountains.hts: Höhen an festen Stützstellen)
+  const MT = world.region.mountains || {};
+  ctx.fillStyle = MT.color || '#c9dbe8';
   ctx.beginPath(); ctx.moveTo(left, baseY);
   const peaks = [0, .08, .15, .22, .3, .36, .45, .52, .6, .68, .74, .82, .9, 1];
-  const hts = [0, 60, 30, 95, 50, 120, 70, 140, 80, 100, 55, 110, 40, 0];
+  const hts = MT.hts || [0, 60, 30, 95, 50, 120, 70, 140, 80, 100, 55, 110, 40, 0];
   peaks.forEach((p, i) => ctx.lineTo(left + span * p, baseY - hts[i] * cam.zoom * 0.7));
   ctx.closePath(); ctx.fill();
   // weicher Dunst am Bergfuß statt harter Kante
@@ -1374,8 +1437,7 @@ function drawDecor(o, now) {
         ctx.fillStyle = '#4b3a2a'; ctx.fillRect(tx - 1.5 * z, y0 - (th - 8) * z, 3 * z, 4 * z);
       };
       if (L >= 4) tower(x0 + 10 * z, 14);
-      tower(x0, 22);
-      flag(x0, y0 - 36 * z, z, now, L >= 6 ? '#f2b631' : '#e8573f');
+      drawLandmark(world.region.landmark, x0, y0, z, now, L, tower);
       break;
     }
     case 'hangar': {
@@ -1437,6 +1499,47 @@ function drawDecor(o, now) {
       if (L >= 6) flag(x0 - 24 * z, y0 + 8 * z, z, now, '#f2b631');
       break;
     }
+    case 'alp': {
+      // sanfte Hügel, Kühe mit Glocken, Alphütte ab Stufe 3
+      ctx.fillStyle = 'rgba(90,150,60,.25)';
+      ctx.beginPath(); ctx.ellipse(x0 - 10 * z, y0 - 6 * z, 22 * z, 9 * z, 0, Math.PI, 0); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x0 + 14 * z, y0 - 12 * z, 16 * z, 7 * z, 0, Math.PI, 0); ctx.fill();
+      if (L >= 3) house(x0 + 16 * z, y0 - 4 * z, 15 * z, 8 * z, '#b5814e', '#6b4a2a');
+      ctx.fillStyle = '#e86a8a'; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.arc(x0 + (R(i + 20) - .5) * 44 * z, y0 + (R(i + 30) - .3) * 22 * z, 1.2 * z, 0, 7); ctx.fill(); }
+      const spots = [[-6, 2], [10, 12], [-18, 12], [2, -10], [20, 8]];
+      const nCows = Math.min(spots.length, 1 + Math.floor((L + 1) / 2));
+      for (let i = 0; i < nCows; i++) {
+        const bob = Math.sin(now / 900 + o.row + i) * .6 * z, cx = x0 + (spots[i][0] + (R(i) - .5) * 5) * z, cy = y0 + spots[i][1] * z + bob, cz = z * (i ? 0.75 : 0.9);
+        cow(cx, cy, cz);
+        ctx.fillStyle = '#f2b631'; ctx.beginPath(); ctx.arc(cx + 8 * cz, cy + 2 * cz, 1.6 * cz, 0, 7); ctx.fill(); // Glocke
+      }
+      if (L >= 6) flag(x0 - 24 * z, y0 + 6 * z, z, now, '#f2b631');
+      break;
+    }
+    case 'river': {
+      // Bach quer über das Feld, Kraftwerk mit Wasserrad, Mast mit Leitung
+      ctx.strokeStyle = '#7cc3e6'; ctx.lineWidth = 7 * z; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x0 - 30 * z, y0 - 14 * z); ctx.bezierCurveTo(x0 - 8 * z, y0 - 12 * z, x0 - 6 * z, y0 + 10 * z, x0 + 30 * z, y0 + 12 * z); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.2 * z;
+      const ph = (now / 600) % 1;
+      ctx.setLineDash([4 * z, 8 * z]); ctx.lineDashOffset = -ph * 12 * z;
+      ctx.beginPath(); ctx.moveTo(x0 - 30 * z, y0 - 14 * z); ctx.bezierCurveTo(x0 - 8 * z, y0 - 12 * z, x0 - 6 * z, y0 + 10 * z, x0 + 30 * z, y0 + 12 * z); ctx.stroke();
+      ctx.setLineDash([]); ctx.lineDashOffset = 0; ctx.lineCap = 'butt';
+      if (L >= 5) { ctx.fillStyle = '#b8c0c7'; ctx.fillRect(x0 - 24 * z, y0 - 20 * z, 6 * z, 12 * z); ctx.fillStyle = '#9aa4ad'; ctx.fillRect(x0 - 21 * z, y0 - 20 * z, 3 * z, 12 * z); } // Staumauer
+      const run = isRunning(o.b) || (o.b && o.b.p > 0);
+      const wx = x0 - 4 * z, wy = y0 + 2 * z, wr = (6 + L * 0.5) * z, rot = run ? now / 300 : 0;
+      ctx.strokeStyle = '#8a5a33'; ctx.lineWidth = 1.4 * z;
+      ctx.beginPath(); ctx.arc(wx, wy, wr, 0, 7); ctx.stroke();
+      for (let i = 0; i < 6; i++) { const a = rot + i * Math.PI / 3; ctx.beginPath(); ctx.moveTo(wx, wy); ctx.lineTo(wx + Math.cos(a) * wr, wy + Math.sin(a) * wr); ctx.stroke(); }
+      house(x0 + 10 * z, y0 + 8 * z, (12 + L) * z, (8 + L * 0.6) * z, '#e9e4da', '#5d6b78');
+      // Strommast
+      const mx = x0 + 24 * z, my = y0 - 2 * z;
+      ctx.strokeStyle = '#6b7f90'; ctx.lineWidth = 1.2 * z;
+      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx, my - 20 * z); ctx.moveTo(mx - 5 * z, my - 17 * z); ctx.lineTo(mx + 5 * z, my - 17 * z); ctx.stroke();
+      ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.arc(mx, my - 22 * z, (1.2 + Math.abs(Math.sin(now / 250)) * 1.2) * z, 0, 7); ctx.fill();
+      if (L >= 6) flag(x0 + 4 * z, y0 - 16 * z, z, now, '#f2b631');
+      break;
+    }
     case 'fishground':
     case 'water': {
       ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.5 * z;
@@ -1470,6 +1573,35 @@ function drawDecor(o, now) {
       ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(bx, by - 13 * z); ctx.lineTo(bx + 6 * z, by - 1 * z); ctx.lineTo(bx, by - 1 * z); ctx.closePath(); ctx.fill();
       break;
     }
+  }
+}
+
+// Wahrzeichen der Regionshauptstadt (generische, eigene Formen)
+function drawLandmark(kind, x0, y0, z, now, L, tower) {
+  const fc = L >= 6 ? '#f2b631' : '#e8573f';
+  switch (kind) {
+    case 'lighthouse': {
+      // Hafenmole mit Leuchtturm und Löwe auf dem Sockel
+      ctx.fillStyle = '#d9cba9'; ctx.fillRect(x0 + 4 * z, y0 - 2 * z, 24 * z, 4 * z);
+      const lx = x0 + 22 * z, ly = y0, lh = 34 * z;
+      ctx.fillStyle = '#f4f1ea'; ctx.beginPath(); ctx.moveTo(lx - 5 * z, ly); ctx.lineTo(lx - 3 * z, ly - lh); ctx.lineTo(lx + 3 * z, ly - lh); ctx.lineTo(lx + 5 * z, ly); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#c0503f'; for (let i = 1; i < 4; i++) ctx.fillRect(lx - (5 - i * 0.5) * z, ly - i * 9 * z, (10 - i) * z, 3 * z);
+      ctx.fillStyle = '#4b5b68'; ctx.fillRect(lx - 4 * z, ly - lh - 2 * z, 8 * z, 2 * z);
+      const blink = (Math.sin(now / 400) + 1) / 2;
+      ctx.fillStyle = `rgba(255,214,90,${0.5 + blink * 0.5})`; ctx.fillRect(lx - 2.5 * z, ly - lh - 7 * z, 5 * z, 5 * z);
+      ctx.fillStyle = '#2f5f8a'; ctx.beginPath(); ctx.moveTo(lx - 4 * z, ly - lh - 7 * z); ctx.lineTo(lx, ly - lh - 12 * z); ctx.lineTo(lx + 4 * z, ly - lh - 7 * z); ctx.closePath(); ctx.fill();
+      // Löwe (sitzend, stilisiert)
+      const px = x0 + 6 * z, py = y0;
+      ctx.fillStyle = '#cfc4ad'; ctx.fillRect(px - 4 * z, py - 10 * z, 8 * z, 10 * z);
+      ctx.fillStyle = '#b89a5a'; ctx.beginPath(); ctx.ellipse(px, py - 13 * z, 3.5 * z, 3 * z, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(px + 2 * z, py - 17 * z, 2.6 * z, 0, 7); ctx.fill();
+      tower(x0 - 8 * z, 18);
+      flag(x0 - 8 * z, y0 - 32 * z, z, now, fc);
+      break;
+    }
+    default:
+      tower(x0, 22);
+      flag(x0, y0 - 36 * z, z, now, fc);
   }
 }
 
@@ -1624,6 +1756,12 @@ function drawDots(now) {
     const seg = cum[i] - cum[i - 1] || 1, t = clamp((dist - cum[i - 1]) / seg, 0, 1);
     const a = pts[i - 1], b = pts[i];
     const x = sx(lerp(a[0], b[0], t)), y = sy(lerp(a[1], b[1], t)) + lerp(a[2], b[2], t) * off - 3 * z;
+    if (d.spark) { // Strom: leuchtender Funke statt Karren
+      const fl = 1 + Math.sin(now / 40 + d.t0) * 0.25;
+      ctx.fillStyle = 'rgba(255,220,80,.35)'; ctx.beginPath(); ctx.arc(x, y - 3 * z, 6 * z * fl, 0, 7); ctx.fill();
+      ctx.fillStyle = '#fff6c2'; ctx.beginPath(); ctx.arc(x, y - 3 * z, 2.6 * z, 0, 7); ctx.fill();
+      continue;
+    }
     if (a[3] && b[3]) { // Boot auf dem Wasser
       const dir = b[0] >= a[0] ? 1 : -1;
       ctx.fillStyle = '#8a5a33'; ctx.beginPath(); ctx.moveTo(x - 6 * z, y); ctx.lineTo(x + 6 * z, y); ctx.lineTo(x + 4 * z, y + 3 * z); ctx.lineTo(x - 4 * z, y + 3 * z); ctx.closePath(); ctx.fill();
@@ -1893,18 +2031,20 @@ function buildingStatus(o) {
   if (b.k === 'ferry') return ['ok', 'Die Fähre bringt deine Waren ans andere Ufer.'];
   if (!d.out) return ['ok', 'Der Markt verkauft deine Waren automatisch.'];
   if (d.in && !b.a) {
+    const noSup = Object.keys(d.in).filter(g => !regionProduces(g)).map(g => CONFIG.goods[g].name);
+    if (noSup.length) return ['bad', 'Kein Lieferant: ' + noSup.join(', ') + (noSup.length > 1 ? ' werden' : ' wird') + ' noch nicht hergestellt.'];
     const miss = Object.keys(d.in).filter(g => (state.inventory[g] || 0) < d.in[g]).map(g => CONFIG.goods[g].name).join(', ');
-    return ['bad', regionProduces(Object.keys(d.in)[0]) ? 'Wartet auf ' + miss + ' …' : 'Kein Lieferant: ' + miss + ' wird noch nicht abgebaut.'];
+    return ['bad', 'Wartet auf ' + miss + ' …'];
   }
   if (b.p >= 1 && !canAccept(d.out, d.in ? b.a : batchSize(b))) return ['bad', 'Lager voll – schalte Verkauf für ' + CONFIG.goods[d.out].name + ' ein.'];
-  return ['ok', (d.in ? 'Verarbeitet ' + b.a + '× · ' : 'Produziert · ') + (state.market.sell[d.out] ? 'Überschuss wird verkauft' : 'wird eingelagert')];
+  return ['ok', (d.in ? 'Verarbeitet ' + b.a + '× · ' : 'Produziert · ') + (isEnergy(d.out) ? 'Überschuss geht ins Netz' : state.market.sell[d.out] ? 'Überschuss wird verkauft' : 'wird eingelagert')];
 }
 
 function openHangarSheet(o) {
   const next = nextRegion(), A = world.region.airship;
   const head = sheetHead('🛫', CONFIG.fieldTypes.hangar.top, 'Luftschiffhalle', world.region.name + ' ist erkundet');
   if (!next || !A) {
-    openSheet(head + `<div class="sheet-body"><div class="note">Das Luftschiff ist bereit – aber die nächste Region (Allgäu & Lindau) wird gerade noch vermessen. Sie folgt mit einem späteren Update. Bis dahin kannst du hier weiter ausbauen, Ballons starten und Seeperlen sammeln.</div></div>
+    openSheet(head + `<div class="sheet-body"><div class="note">Das Luftschiff ist bereit – aber die nächste Region wird gerade noch vermessen. Sie folgt mit einem späteren Update. Bis dahin kannst du hier weiter ausbauen, Ballons starten und Seeperlen sammeln.</div></div>
       <button class="secbtn" id="sheetClose">${T_OK()}</button>`);
     $('sheetClose').onclick = closeSheet;
     return;
@@ -2007,8 +2147,9 @@ function openPlotSheet(o) {
   const ft = CONFIG.fieldTypes[o.type];
   const kinds = buildableKinds(o);
   const cards = kinds.map(k => {
-    const d = CONFIG.buildings[k], g = d.in && Object.keys(d.in)[0];
-    const line = d.in ? `${d.in[g]}× ${CONFIG.goods[g].icon} ${CONFIG.goods[g].name} → ${CONFIG.goods[d.out].icon} ${CONFIG.goods[d.out].name} · ${fmtSec(d.cycle)}` : d.desc;
+    const d = CONFIG.buildings[k];
+    const ins = d.in ? Object.keys(d.in).map(g => `${d.in[g]}× ${CONFIG.goods[g].icon} ${CONFIG.goods[g].name}`).join(' + ') : '';
+    const line = d.in ? `${ins} → ${CONFIG.goods[d.out].icon} ${CONFIG.goods[d.out].name} · ${fmtSec(d.cycle)}` : d.desc;
     return `<div class="card"><div class="ic">${d.icon}</div><div class="mid"><b>${d.name}</b>
       <small>${line}</small>
       <small id="hint_${k}"></small></div>
@@ -2023,8 +2164,8 @@ function openPlotSheet(o) {
       if (atMax(k)) { h.className = 'warn'; h.textContent = d.max === 1 ? 'Nur eine pro Region – schon gebaut.' : `Höchstens ${d.max} pro Region – alle gebaut.`; $('build_' + k).querySelector('.cost').textContent = '✓'; return; }
       if (d.max > 1) { h.className = ''; h.textContent = `${countKind(k)} von ${d.max} gebaut`; return; }
       if (!d.in) { h.className = ''; h.textContent = ''; return; }
-      const g = Object.keys(d.in)[0], ok = regionProduces(g);
-      h.className = ok ? '' : 'warn'; h.textContent = ok ? 'Wert: ' + fmtRate(sellPrice(d.out)) + ' Münzen/Stück' : 'Braucht ' + CONFIG.goods[g].name + ' – noch kein Lieferant';
+      const miss = Object.keys(d.in).filter(g => !regionProduces(g)), ok = !miss.length;
+      h.className = ok ? '' : 'warn'; h.textContent = ok ? 'Wert: ' + fmtRate(sellPrice(d.out)) + ' Münzen/Stück' : 'Braucht ' + miss.map(g => CONFIG.goods[g].name).join(' und ') + ' – noch kein Lieferant';
     };
   });
   sheetRefresh = () => refs.forEach(f => f()); sheetRefresh();
@@ -2101,7 +2242,7 @@ function openMarket(tab = 'store') {
   const rows = regionGoods().map(g => {
     const G = CONFIG.goods[g];
     return `<div class="goodrow"><div class="ic">${G.icon}</div><div class="mid"><b>${G.name}</b><small id="inv_${g}"></small></div>
-      <button class="toggle ${state.market.sell[g] ? 'on' : ''}" id="sell_${g}" aria-label="${G.name} verkaufen"></button></div>`;
+      ${isEnergy(g) ? '<span class="pill">Netz</span>' : `<button class="toggle ${state.market.sell[g] ? 'on' : ''}" id="sell_${g}" aria-label="${G.name} verkaufen"></button>`}</div>`;
   }).join('');
   openModal(`<h2>Lager & Markt</h2>${tabs}
     <p class="hint">Schalter an: Überschuss wird automatisch verkauft. Was deine Betriebe für die nächste Charge brauchen (und was der Ballon noch laden soll), bleibt immer im Lager. Schalter aus: alles wird eingelagert (max. ${storageCap()} pro Ware).</p>
@@ -2112,11 +2253,13 @@ function openMarket(tab = 'store') {
     for (const g of regionGoods()) {
       const el = $('inv_' + g); if (!el) continue;
       const res = world.reserve[g] ? ' · Reserve ' + world.reserve[g] : '';
-      el.textContent = `Lager ${fmt(state.inventory[g] || 0)}/${storageCap()}${res} · ${fmtRate(sellPrice(g))} Münzen/Stück`;
+      el.textContent = isEnergy(g) ? `Energie, nicht lagerbar${res ? ' · Puffer ' + world.reserve[g] : ''} · Netz zahlt ${fmtRate(sellPrice(g))} Münzen/Einheit`
+        : `Lager ${fmt(state.inventory[g] || 0)}/${storageCap()}${res} · ${fmtRate(sellPrice(g))} Münzen/Stück`;
     }
     const e = $('earnedTotal'); if (e) e.textContent = fmt(state.stats.earned) + ' Münzen';
   });
   for (const g of regionGoods()) {
+    if (isEnergy(g)) continue;
     $('sell_' + g).onclick = e => { state.market.sell[g] = !state.market.sell[g]; e.currentTarget.classList.toggle('on', state.market.sell[g]); save(); };
   }
   $('tabChains').onclick = () => openMarket('chains');

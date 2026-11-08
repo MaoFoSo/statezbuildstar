@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.5.0] – Meilenstein 5: Regionen 3–6
+
+### Neu
+- **Region 3: Allgäu & Lindau** (45 Felder + Luftschiffplatz, Inselhafen im Süden):
+  - **Energie als neue Ressourcenart**: Wasserkraftwerke an Gebirgsbächen liefern Strom
+    - Strom lässt sich nicht einlagern: kein Verkaufsschalter, was Betriebe, Ballon und Luftschiff nicht brauchen, geht sofort ins Netz
+    - Strom fließt als leuchtender Funke über die Wege statt per Karren
+  - Rohstoffe: Milch (Alpweide), Holz (Bergwald), Strom (Gebirgsbach)
+  - Ketten: Milch + Strom → Bergkäse (Käserei) · Holz → Schindeln (Schindelmacher) → Holzbau (Zimmerei, braucht Strom) · Strom
+  - Fährstationen am Inselhafen, eigene Ballon-Ladungen, 16 Ziele, Marktplatz-Faktor ×8
+  - Luftschiff: 12 Holzbau, 30 Bergkäse, 40 Strom
+  - neue prozedurale Grafik: Alpweiden mit Kühen und Glocken, Alphütte, Bach mit Wasserrad, Kraftwerk, Strommast, Staumauer; Leuchtturm und Löwe am Hafen
+- Betriebe können **mehrere Eingangswaren** haben; Bauplatz-Auswahl, Status und Hinweise zeigen alle Eingänge
+- Jede Region kann ein eigenes **Bergpanorama** (`mountains`) und ein **Wahrzeichen** der Hauptstadt (`landmark`) haben
+
+### Geändert
+- Balancing: Test-Bot braucht für das Allgäu ca. 43 min (Oberschwaben ca. 23, Nordufer ca. 34)
+
 ## [0.4.0] – Meilenstein 4: Luftschiff & Regionswechsel
 
 ### Neu
