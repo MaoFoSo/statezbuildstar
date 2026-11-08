@@ -16,5 +16,8 @@ Ein Idle-/Tycoon-Aufbauspiel rund um den Bodensee, gespielt auf einem Raster aus
 - Eine Ballonstation belädt Heißluftballons mit Waren. Starts bringen Seeperlen und decken Nebel auf.
 - Seeperlen gibst du unter „Upgrades“ für dauerhafte, globale Verbesserungen aus.
 - „Ziele“ führen durch die Region und bringen Belohnungen.
-- Ist eine Region ganz erkundet, erscheint die Luftschiffhalle. Belade das Luftschiff und fliege zur nächsten Region (Nordufer & Hinterland mit See, Fischerei, Fähren und Booten). Seeperlen und globale Upgrades nimmst du mit.
+- Ist eine Region ganz erkundet, erscheint die Luftschiffhalle. Belade das Luftschiff und fliege zur nächsten Region. Seeperlen und globale Upgrades nimmst du mit.
+- Sechs Regionen: Oberschwaben → Nordufer & Hinterland (See, Fischerei, Fähren, Boote) → Allgäu & Lindau (Strom aus Wasserkraft) → Vorarlberg → Thurgau & St. Gallen → Konstanz, Reichenau & Hegau.
+- Strom ist Energie: Er lässt sich nicht einlagern, was nicht gebraucht wird, geht ins Netz.
+- Finale: Das große Luftschiff startet zur Dreiländer-Rundfahrt. Danach beginnt die Reise in Oberschwaben von vorn, mit dauerhaft +25 % auf alle Verkaufspreise je Rundfahrt.
 - Debug: `index.html#debug` öffnen, dann Einstellungen → „+1.000 Münzen“, „+10 Seeperlen“ oder „Region abschließen“.

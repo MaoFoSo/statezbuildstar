@@ -24,11 +24,22 @@
   - Fährstationen, eigene Ballon-Ladungen, 17 Ziele, Marktplatz-Faktor ×50
   - Luftschiff: 10 Stickerei, 20 Präzisionsmechanik, 40 Saftkonzentrat
   - neue prozedurale Grafik: Großplantagen mit Baumreihen und Traktor, Uhrmacherdorf mit Turmuhr und Zahnrad; Hafen mit Kran und Burgturm, großer Gipfel im Panorama
+- **Region 6: Konstanz, Reichenau & Hegau** (44 Felder + Luftschiffplatz, Untersee mit Inseln):
+  - Rohstoffe: Gemüse (Gemüseinsel), Blumen (Blumeninsel), Vulkanstein (Vulkankegel)
+  - Ketten: Gemüse → Konserven (Konservenfabrik) · Blumen → Duftöl (Duftöl-Destille) · Vulkanstein → Baustoffe (Baustoffwerk)
+  - Fährstationen, eigene Ballon-Ladungen, 15 Ziele, Marktplatz-Faktor ×120
+  - neue prozedurale Grafik: Beetreihen mit Gewächshaus, Blumenbeete mit Pavillon, Vulkankegel mit Burgruine und Bagger; Münster mit Turmspitze und Hafen mit drehender Figur; Kegelberge im Panorama
+- **Finale: Dreiländer-Rundfahrt** (Endlos-/Prestige-Modus):
+  - in Konstanz wird das **große Luftschiff** beladen (20 Duftöl, 40 Konserven, 60 Baustoffe), größer und mit drei Farbbändern
+  - die Rundfahrt führt zurück nach Oberschwaben; jede Rundfahrt erhöht alle Verkaufspreise dauerhaft um 25 % (`CONFIG.tour`) und bringt 80 Seeperlen
+  - eigener Text in Halle, Bestätigung, Ziel-Banner und Ankunftsdialog; der Bonus steht im Lager
 - Betriebe können **mehrere Eingangswaren** haben; Bauplatz-Auswahl, Status und Hinweise zeigen alle Eingänge
 - Jede Region kann ein eigenes **Bergpanorama** (`mountains`) und ein **Wahrzeichen** der Hauptstadt (`landmark`) haben
 
 ### Geändert
-- Balancing: Test-Bot braucht für Oberschwaben ca. 23 min, Nordufer ca. 34, Allgäu ca. 43, Vorarlberg ca. 53, Thurgau & St. Gallen ca. 61
+- Spielstand `saveVersion` 5, mit Migration von Version 4 (Zähler `tour` für Rundfahrten)
+- Hinweistexte in Halle und Abschlussdialog nennen keine feste nächste Region mehr
+- Balancing: Test-Bot braucht für Oberschwaben ca. 23 min, Nordufer ca. 34, Allgäu ca. 43, Vorarlberg ca. 54, Thurgau & St. Gallen ca. 62, Konstanz ca. 71; nach der ersten Rundfahrt Oberschwaben ca. 11 min
 
 ## [0.4.0] – Meilenstein 4: Luftschiff & Regionswechsel
 
