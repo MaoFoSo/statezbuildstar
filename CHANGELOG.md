@@ -12,11 +12,17 @@
   - Fährstationen am Inselhafen, eigene Ballon-Ladungen, 16 Ziele, Marktplatz-Faktor ×8
   - Luftschiff: 12 Holzbau, 30 Bergkäse, 40 Strom
   - neue prozedurale Grafik: Alpweiden mit Kühen und Glocken, Alphütte, Bach mit Wasserrad, Kraftwerk, Strommast, Staumauer; Leuchtturm und Löwe am Hafen
+- **Region 4: Vorarlberg** (44 Felder + Luftschiffplatz, Rheindelta im Süden):
+  - Rohstoffe: Stein (Steinbruch), Wolle (Schafweide), Strom (Gebirgsbach)
+  - Ketten: Stein → Werkstein (Steinmetz) → Maschinenteile (Maschinenbau, braucht viel Strom) · Wolle + Strom → Stoff (Weberei) · Strom
+  - Fährstationen im Rheindelta, eigene Ballon-Ladungen, 16 Ziele, Marktplatz-Faktor ×20
+  - Luftschiff: 12 Maschinenteile, 30 Stoff, 40 Werkstein
+  - neue prozedurale Grafik: Steinbruch mit Felswand, Blöcken und Kran, Schafweide mit Schäferhütte; Bühne im See mit Scheinwerfern und Seilbahn zum Hausberg
 - Betriebe können **mehrere Eingangswaren** haben; Bauplatz-Auswahl, Status und Hinweise zeigen alle Eingänge
 - Jede Region kann ein eigenes **Bergpanorama** (`mountains`) und ein **Wahrzeichen** der Hauptstadt (`landmark`) haben
 
 ### Geändert
-- Balancing: Test-Bot braucht für das Allgäu ca. 43 min (Oberschwaben ca. 23, Nordufer ca. 34)
+- Balancing: Test-Bot braucht für Oberschwaben ca. 23 min, Nordufer ca. 34, Allgäu ca. 43, Vorarlberg ca. 53
 
 ## [0.4.0] – Meilenstein 4: Luftschiff & Regionswechsel
 
