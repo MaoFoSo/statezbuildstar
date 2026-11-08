@@ -1,0 +1,19 @@
+{
+  "name": "Bodensee Builder",
+  "short_name": "Bodensee",
+  "description": "Idle-Aufbauspiel rund um den Bodensee auf einem Raster aus Achtecken und Quadraten.",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#bfe3f2",
+  "theme_color": "#bfe3f2",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
