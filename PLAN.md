@@ -4,7 +4,7 @@ Kurzer technischer Plan zur Spezifikation in [`PROMPT.md`](PROMPT.md).
 
 ## Architektur
 
-- **`index.html`**: HTML, CSS und JS inline, keine Abhängigkeiten. Später kommen `manifest.json`, `sw.js` und Icons dazu (PWA, Meilenstein 5).
+- **`index.html`**: HTML, CSS und JS inline, keine Abhängigkeiten. Dazu kommen `manifest.json`, `sw.js` und `icons/` (PWA, Meilenstein 5b) sowie Werkzeuge in `tools/` (Balancing-Bot, Icon-Erzeugung; nicht Teil der App).
 - Das JS ist in feste Abschnitte gegliedert:
   1. **CONFIG**: alle Spielwerte (Kosten, Zeiten, Multiplikatoren, Farben, Kartenlayouts)
   2. **Utils**: Zahlenformat (deutsch), Mathe, Geometrie
@@ -116,6 +116,11 @@ Seit M5 (`saveVersion` 5):
 
 - `tour`: Anzahl abgeschlossener Dreiländer-Rundfahrten (bleibt beim Regionswechsel)
 
+Seit M5b (`saveVersion` 6):
+
+- `event: null | { id, t }`: laufendes Event mit Restsekunden (pro Region)
+- `eventNext`: Sekunden aktiven Spiels bis zum nächsten Event
+
 Regeln:
 
 - **Migrationen**: `MIGRATIONS[v] = save => save'` werden der Reihe nach angewandt, bis `CONFIG.saveVersion` erreicht ist.
@@ -131,7 +136,7 @@ Regeln:
 | 3 | Meta: globale Upgrades, Seeperlen, Ballonstation, Ziele/Tutorial, Lieferketten-Übersicht | ✅ fertig |
 | 4 | Luftschiff & Regionswechsel (Prestige), Region 2 Nordufer mit Wasser, Fähre, Booten | ✅ fertig |
 | 5a | Regionen 3–6 (Allgäu & Lindau mit Energie, Vorarlberg, Thurgau & St. Gallen, Konstanz/Reichenau/Hegau), Finale Dreiländer-Rundfahrt | ✅ fertig |
-| 5b | **als Nächstes:** Events (Föhn, Herbstnebel, Feste), Quadrat-Bonusfelder, Pfahlbauten, Dialekt-Texte, PWA (Manifest, Service Worker, Icons) | – |
+| 5b | Events (Föhn, Herbstnebel, Feste), Quadrat-Bonusfelder (Zunftplätze), Pfahlbauten, Dialekt-Texte, PWA (Manifest, Service Worker, Icons) | ✅ fertig |
 
 ### Hinweise zu Meilenstein 1
 
@@ -182,8 +187,18 @@ Regeln:
 - **Finale**: `airship.finale` in der letzten Region. `nextRegionIndex()` liefert dann 0; beim Abflug zählt `state.tour` hoch. `tourMult()` = 1 + `CONFIG.tour.priceBonus` × `tour` wirkt in `sellPrice()`.
 - **Balancing** (Test-Bot, spielt alle Regionen nacheinander und nimmt Seeperlen und Upgrades mit): Allgäu ca. 43 min, Vorarlberg ca. 54, Thurgau & St. Gallen ca. 62, Konstanz ca. 71. Stellschrauben je Region: `startCoins`, `unlock.base`, `market.cost/tax`, Gebäudekosten und Warenpreise.
 
-### Nächste Schritte (Meilenstein 5b)
+### Events, Zunftplätze, Dialekt & PWA (Meilenstein 5b)
 
-- Events: Föhn (doppelte Ballonboni), Herbstnebel, Feste
-- Quadrat-Bonusfelder, Pfahlbauten, Dialekt-Texte
-- PWA: `manifest.json`, `sw.js`, Icons
+- **Events** (`CONFIG.events`, Feste in `regions[].fest`): `eventTick()` läuft am Ende von `simTick()`. Ein laufendes Event zählt immer herunter (auch offline), neue starten nur im aktiven Spiel (`catchingUp` sperrt sie während `catchUp()`). Auswahl gewichtet per `weight` aus Föhn, Herbstnebel und dem Fest der Region.
+  - Wirkung: `price` (`all` oder je Ware) in `eventPriceMult()` → `sellPrice()`, `balloon` (Föhn) in `balloonReward()`, `pearls` einmalig beim Start, `boatSlow` (Herbstnebel) nur für die Transportanimation
+  - Grafik: `eventFade()` blendet über `fadeSeconds` ein und aus; Föhn in `drawBackground()`, Herbstnebel und Feuerwerk in `drawEventOverlay()`, Festschmuck (`deco: flags|stage|fireworks`) in `drawFestDeco()`
+- **Zunftplätze**: `refreshWorld()` prüft jedes Quadrat mit `squareChain()`. Tragen alle vier Nachbar-Achtecke freie Betriebe derselben Kette (Index in `region.chains` über die Ausgangsware), wird `sq.bonus` zum Ketten-Index. `world.sqBonus` (Gebäude-Objekt → Anzahl) wirkt in `cycleTime(b, n)`. `bonusGain(o, k)` zählt für die Bau-Auswahl, wie viele Zunftplätze ein Bau neu schaffen würde. Wasserflag von Quadraten jetzt über `sqWet()`, weil ein Zunftplatz auch zwischen Wasserfeldern liegen kann.
+- **Pfahlbauten**: Feldtyp `stilts` (Kartenzeichen `H`) mit `secret: true` und `pearls`. Im Nebel als „???“, `revealField()` schreibt die Seeperlen einmalig gut (gekauft oder per Ballon).
+- **Dialekt**: `tx(key)` liest `CONFIG.texts[key][dialect ? 1 : 0]`; Ladebildschirm-Sprüche aus `quotes` bzw. `quotesDialect`.
+- **PWA**: `sw.js` cacht die App-Dateien beim Installieren (`CACHE` bei jedem Release hochzählen), antwortet per „stale-while-revalidate“, Navigationen gehen auf `index.html`. Registrierung in `registerServiceWorker()` nur unter http/https.
+- **Balancing** (`tools/balance.sh index.html 10`): Oberschwaben ca. 15 min, Nordufer ca. 28, Allgäu ca. 30, Vorarlberg ca. 36, Thurgau & St. Gallen ca. 40, Konstanz ca. 50, nach der ersten Rundfahrt Oberschwaben ca. 7. Der Bot ist effizienter als der aus M2–M5a, die absoluten Zeiten sind deshalb niedriger; maßgeblich ist der Vergleich vorher/nachher (16 / 27 / 30 / 37 / 42 / 52 / 8 min) und dass jede Region länger dauert als die vorige.
+
+### Ideen für danach
+
+- weitere Feste und Wetter (Gewitter, Eis auf dem See), Erfolge über alle Regionen
+- Zunftplätze mit eigener Optik je Kette, Statistik-Seite

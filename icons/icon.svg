@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9fd3ee"/><stop offset="0.55" stop-color="#cdeaf6"/><stop offset="1" stop-color="#5fb0dc"/>
+    </linearGradient>
+    <linearGradient id="lake" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6fbbe2"/><stop offset="1" stop-color="#2f7fb5"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#sky)"/>
+  <!-- Alpen -->
+  <path d="M0 250 L70 170 L120 210 L190 120 L250 190 L300 140 L370 205 L430 150 L512 230 L512 300 L0 300 Z" fill="#b9cfe0"/>
+  <path d="M190 120 L215 150 L200 148 L190 160 L178 147 L165 152 Z M300 140 L322 165 L308 163 L300 172 L290 162 L280 166 Z M430 150 L452 175 L438 172 L430 182 L420 172 L410 176 Z" fill="#f4f8fb"/>
+  <!-- See -->
+  <path d="M0 290 Q256 260 512 290 L512 512 L0 512 Z" fill="url(#lake)"/>
+  <g id="fg">
+  <!-- Achteck-Platte mit Seitenkante -->
+  <g transform="translate(256 318)">
+    <polygon points="-62,-150 62,-150 150,-62 150,62 62,150 -62,150 -150,62 -150,-62" transform="translate(0 26) scale(1 0.62)" fill="#4f9636"/>
+    <polygon points="-62,-150 62,-150 150,-62 150,62 62,150 -62,150 -150,62 -150,-62" transform="scale(1 0.62)" fill="#7fc35a" stroke="#a9dc8c" stroke-width="6"/>
+    <!-- Bäume -->
+    <g fill="#2f7630">
+      <path d="M-110 -6 l22 -52 l22 52 z"/><path d="M-80 18 l18 -44 l18 44 z"/>
+    </g>
+    <g fill="#3f8f3a"><path d="M-110 -6 l22 -52 l0 52 z"/><path d="M-80 18 l18 -44 l0 44 z"/></g>
+    <!-- Haus mit Turm -->
+    <rect x="-34" y="-46" width="58" height="44" fill="#fbf3e4"/>
+    <rect x="24" y="-40" width="18" height="38" fill="#e2d6be"/>
+    <path d="M-40 -46 L-5 -82 L30 -46 Z" fill="#d9694a"/>
+    <path d="M-5 -82 L30 -46 L48 -40 L13 -76 Z" fill="#b84f38"/>
+    <rect x="-14" y="-28" width="16" height="26" fill="#8a5a33"/>
+    <rect x="52" y="-96" width="26" height="96" fill="#efe2c6"/>
+    <rect x="65" y="-96" width="13" height="96" fill="#d9cba9"/>
+    <path d="M46 -96 L65 -134 L84 -96 Z" fill="#2f5f8a"/>
+    <path d="M65 -134 L65 -150 L82 -144 L65 -138" fill="#f2b631"/>
+  </g>
+  <!-- Heißluftballon -->
+  <g transform="translate(392 96)">
+    <path d="M0 -44 C-40 -44 -46 0 0 44 C46 0 40 -44 0 -44 Z" fill="#e8735a"/>
+    <path d="M0 -44 C-14 -44 -16 0 0 44 C16 0 14 -44 0 -44 Z" fill="#f4b740"/>
+    <path d="M-8 52 L-12 40 M8 52 L12 40" stroke="#6b4a2a" stroke-width="3"/>
+    <rect x="-9" y="52" width="18" height="13" rx="3" fill="#8a5a33"/>
+  </g>
+  </g>
+</svg>

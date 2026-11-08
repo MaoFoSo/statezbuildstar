@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.6.0] – Meilenstein 5b: Events, Zunftplätze, Dialekt & PWA
+
+### Neu
+- **Zufalls-Events** (nur im aktiven Spiel, alle 2,5–5 min, das erste nach 2 min; Werte in `CONFIG.events`):
+  - **Föhn** (60 s): tiefblauer Himmel, Sonne, höhere und klarere Alpen; Ballonstarts bringen doppelte Münzen und Seeperlen
+  - **Herbstnebel** (90 s): Nebelschwaden ziehen über Karte und See, Boote fahren langsamer (nur Optik)
+  - Event-Anzeige unter der Topbar mit Wirkung und Restzeit; antippen erklärt das Event (bei Föhn und startklarem Ballon geht es direkt zur Ballonstation)
+- **Feste**, eins pro Region (`regions[].fest`):
+  - Oberschwaben: **Rutenfest** – alle Verkaufspreise +50 %, Wimpelketten und Trommler in der Altstadt
+  - Nordufer: **Winzerfest** – Wein +100 %, Bier +50 %
+  - Allgäu & Lindau: **Viehscheid** – Bergkäse und Milch +100 %
+  - Vorarlberg: **Seefestspiele** – Stoff +150 %, Scheinwerfer über der Bühne im See
+  - Thurgau & St. Gallen: **Mostfest** – Saftkonzentrat und Äpfel +100 %
+  - Konstanz: **Seenachtfest** – Abenddämmerung und Feuerwerk über dem See, +6 Seeperlen
+  - der Festbonus steht auch im Lager
+- **Quadrat-Bonusfelder („Zunftplatz“)**: Umgeben vier Betriebe derselben Lieferkette ein Quadrat, arbeiten alle vier 10 % schneller (`CONFIG.bonusSquare`, ein Betrieb kann an bis zu vier Zunftplätzen liegen)
+  - goldenes Pflaster mit Marktstand in der Farbe der Kette; antippen zeigt die vier Betriebe
+  - Bau-Auswahl zeigt „⭐ +1 Zunftplatz“, wenn ein Bau einen neuen Zunftplatz schafft; Gebäude-Sheet und Lieferketten-Übersicht zeigen die Boni
+- **Pfahlbauten**: geheimes Uferfeld am Nordufer und am Untersee. Im Nebel steht nur „???“, das Aufdecken (auch per Ballon) bringt einmalig 20 Seeperlen; eigene Grafik mit Hütten auf Pfählen
+- **Dialekt-Schalter** (Einstellungen): rund 20 Texte auf Schwäbisch/Alemannisch, z. B. „Des goht“, „Freimacha“, „Ausbaua“, „No ned“, „Derweil du fort warsch …“, eigene Ladebildschirm-Sprüche („Schaffe, schaffe, Häusle baue …“). Texte zentral in `CONFIG.texts`
+- **PWA**:
+  - `manifest.json` (Standalone, Hochformat, deutsch)
+  - `sw.js`: Service Worker mit Offline-Cache aller App-Dateien („stale-while-revalidate“: startet sofort aus dem Cache, lädt Updates im Hintergrund; Hinweis „Update geladen – aktiv beim nächsten Start“)
+  - eigene Icons (`icons/icon.svg`, PNG 192/512, maskable 512, Apple-Touch-Icon 180)
+  - der Service Worker wird nur über http/https registriert, `index.html` direkt geöffnet läuft weiter wie bisher
+- Werkzeuge in `tools/`: Balancing-Bot (`balance-bot.js`, `balance.sh`) und Icon-Erzeugung (`make-icons.js`)
+- Debug (`#debug`): „nächstes Event starten“
+
+### Geändert
+- Spielstand `saveVersion` 6, mit Migration von Version 5 (`event`, `eventNext`)
+- Nordufer-Karte (47 → 48 Felder) und Konstanz-Karte (44 → 45 Felder) haben je ein geheimes Feld; bestehende Spielstände bekommen es beim Laden dazu
+- Toasts erscheinen etwas tiefer, damit sie die Event-Anzeige nicht verdecken
+- Balancing: Freischaltkosten Allgäu 120 → 130, Thurgau & St. Gallen 380 → 520, Konstanz 600 → 750 – gleicht die neuen Boni aus (Zunftplätze, Feste, Föhn, Pfahlbauten)
+- Test-Bot (`tools/balance.sh`, Mittel über 10 Seeds, effizienter als der bisherige Bot): Oberschwaben ca. 15 min, Nordufer ca. 28, Allgäu ca. 30, Vorarlberg ca. 36, Thurgau & St. Gallen ca. 40, Konstanz ca. 50; nach der ersten Rundfahrt Oberschwaben ca. 7 min. Vor den Änderungen maß derselbe Bot 16 / 27 / 30 / 37 / 42 / 52 / 8 min
+
 ## [0.5.0] – Meilenstein 5: Regionen 3–6
 
 ### Neu
