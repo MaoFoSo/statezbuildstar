@@ -6,9 +6,9 @@
 
 ## Rolle & Ziel
 
-Du bist ein erfahrener Spieleentwickler für Browser- und Mobile-Spiele. Baue ein **Idle-/Tycoon-Aufbauspiel mit Lieferketten**. Die Spielmechanik ist an Genre-Titel wie „States Builder“ angelehnt. Das Spiel spielt aber in einer **eigenen Welt rund um den Bodensee** (Deutschland, Österreich, Schweiz) und hat ein **eigenes Achteck-Raster**.
+Du bist ein erfahrener Spieleentwickler für Browser- und Mobile-Spiele. Baue ein **Idle-/Tycoon-Aufbauspiel mit Lieferketten**. Die Spielmechanik folgt bekannten Genre-Prinzipien (Felder freischalten, Lieferketten, Ausbaustufen, Prestige). Das Spiel spielt in einer **eigenen Welt rund um den Bodensee** (Deutschland, Österreich, Schweiz) und hat ein **eigenes Achteck-Raster**.
 
-Wichtig: Übernimm **keine** Namen, Grafiken, Texte oder Assets von States Builder oder anderen Spielen. Alle Grafiken werden selbst erzeugt (SVG/Canvas, prozedural). Keine echten Markennamen oder Logos (z. B. kein „Ravensburger“, kein „ZF“, kein „Zeppelin NT“). Allgemeine Begriffe wie „Luftschiff“, „Fähre“ oder „Hopfen“ sind okay.
+Wichtig: Übernimm **keine** Namen, Grafiken, Texte, Kartenlayouts, Musik oder Assets aus anderen Spielen. Alle Grafiken werden selbst erzeugt (SVG/Canvas, prozedural). Keine echten Markennamen oder Logos (z. B. kein „Ravensburger“, kein „ZF“, kein „Zeppelin NT“). Allgemeine Begriffe wie „Luftschiff“, „Fähre“ oder „Hopfen“ sind okay.
 
 ---
 
@@ -85,10 +85,10 @@ Für jede Region gilt: eigene Farbpalette und Landschaftsdeko auf freien Fläche
 - **Föhn-Bonus:** Zufallsevent. Klare Sicht, die Alpen werden sichtbar, alle Ballonstarts geben für 60 s doppelte Boni.
 - **Herbstnebel:** Kosmetisches Wetter-Event, Nebelschwaden über dem See. Optional reduziert er kurz die Bootsgeschwindigkeit.
 - **Feste als Events** (zeitlich begrenzte Boni):
-  - Rutenfest (Ravensburg): +50 % Verkaufspreise für Region 1
-  - Seenachtfest (Konstanz): Feuerwerk-Animation, Seeperlen-Belohnung
-  - Bregenzer Festspiele: Seebühne leuchtet, Stoff-Bonus
-- **Pfahlbauten** (Unteruhldingen): Geheimes Bonusfeld am Ufer. Freischalten bringt einmalig viele Seeperlen.
+  - Kinderfest (Oberschwaben): +50 % Verkaufspreise für Region 1
+  - Seefest mit Feuerwerk (Konstanz): Feuerwerk-Animation, Seeperlen-Belohnung
+  - Festspielsommer am See (Bregenz): Seebühne leuchtet, Stoff-Bonus
+- **Pfahlbauten** (Nordufer): Geheimes Bonusfeld am Ufer. Freischalten bringt einmalig viele Seeperlen.
 - **Quadrat-Bonusfelder:** Ein Quadrat, das von 4 Gebäuden derselben Warenkette umgeben ist, wird zum Bonusfeld, z. B. „Marktplatz“ +10 % für alle vier Nachbarn. Das belohnt durchdachte Platzierung auf dem Achteck-Raster.
 - **Optionaler Dialekt-Schalter** in den Einstellungen: Ausgewählte UI-Texte auf Schwäbisch/Alemannisch (z. B. „Schaffe, schaffe, Häusle baue“ als Ladebildschirm-Spruch, „Des goht“ statt „OK“).
 

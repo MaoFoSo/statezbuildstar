@@ -132,6 +132,8 @@ Regeln:
 | 4 | Luftschiff & Regionswechsel (Prestige), Region 2 Nordufer mit Wasser, Fähre, Booten | ✅ fertig |
 | 5a | Regionen 3–6 (Allgäu & Lindau mit Energie, Vorarlberg, Thurgau & St. Gallen, Konstanz/Reichenau/Hegau), Finale Dreiländer-Rundfahrt | ✅ fertig |
 | 5b | **als Nächstes:** Events (Föhn, Herbstnebel, Feste), Quadrat-Bonusfelder, Pfahlbauten, Dialekt-Texte, PWA (Manifest, Service Worker, Icons) | – |
+| 6 | Gebiete (Etappen) innerhalb einer Region, Fortschrittsleiste oben, Münz-Upgrades pro Region | – |
+| 7 | Feinschliff: Balancing aller Regionen mit Gebieten, Rechte-Check, Release-Texte | – |
 
 ### Hinweise zu Meilenstein 1
 
@@ -187,3 +189,64 @@ Regeln:
 - Events: Föhn (doppelte Ballonboni), Herbstnebel, Feste
 - Quadrat-Bonusfelder, Pfahlbauten, Dialekt-Texte
 - PWA: `manifest.json`, `sw.js`, Icons
+
+## Abgleich: Kernschleife des Genres → Stand im Spiel
+
+Ziel: Die Kernschleife eines Idle-Lieferketten-Aufbauspiels soll vollständig spielbar sein. Alles ist eigenständig umgesetzt: eigener Name, eigene Welt (Bodensee), eigenes Achteck-Raster, eigene Grafik, Texte und Karten.
+
+| Mechanik | Umsetzung im Spiel | Status |
+|---|---|---|
+| Felder einzeln freischalten, Kosten steigen | Nebelfelder, `unlock.base × growth^n` | ✅ |
+| Rohstoffe abbauen und verkaufen | Rohstoffbetriebe, Markt mit Verkaufsschalter | ✅ |
+| Weiterverarbeitung dauert länger, bringt mehr | Verarbeitungsbetriebe, mehrstufige Ketten, mehrere Eingänge | ✅ |
+| Jedes Gebäude hat 6 Stufen | `levels.max = 6`, sichtbare Optik je Stufe | ✅ |
+| Dauerhafte Upgrades je Warenart, gelten in allen Regionen | Globale Upgrades (Tempo, Preis) mit Seeperlen | ✅ |
+| Waren umleiten, Ballons starten, Münzen + Zweitwährung | Ballonstation, Belohnung Münzen + Seeperlen, deckt Nebel auf | ✅ |
+| Gebiet fertig → Münzen sparen → nächstes Gebiet | **fehlt** – heute ist eine Region ein einziges Gebiet | Meilenstein 6 |
+| Fortschritt „Felder x/y“ und Gebietsmarken sichtbar | **fehlt** – nur im Ziel-Banner | Meilenstein 6 |
+| Region komplett → Fahrzeug mit Waren betanken → neue Region | Luftschiffhalle, Ladung, Flug, Prestige | ✅ |
+| Endlos-Modus | Dreiländer-Rundfahrt, +25 % je Runde | ✅ |
+| Offline-Ertrag | Simulation im stillen Modus, Dialog | ✅ |
+
+## Meilenstein 6 – Gebiete (Etappen)
+
+Jede Region wird in **3–4 Gebiete** geteilt (z. B. Oberschwaben: „Altstadt“, „Hügelland“, „Waldrand“).
+
+- **Kartenlayout**: zweites ASCII-Raster `areas` in der Regionen-Config. Gleiche Form wie `map`, Zeichen `1`–`4` = Gebietsnummer.
+- **Grenze**: Felder eines gesperrten Gebiets sind dunkler und mit einer Schranke markiert. Man kann sie nicht antippen, um sie freizuschalten.
+- **Gebiet abschließen**: Sind alle Felder eines Gebiets frei, erscheint auf dem Grenzfeld zum nächsten Gebiet ein **Grenzstein**. Antippen: „Neues Gebiet erschließen für X Münzen“. `X = region.areaCost[i]`, deutlich teurer als ein Feld, damit man sparen und ausbauen muss.
+- **Kosten je Feld** starten pro Gebiet neu: `unlock.base × areaFactor[i] × growth^(n im Gebiet)`.
+- **Ballons** decken nur Felder im aktuellen Gebiet auf.
+- **Luftschiffhalle** erscheint erst, wenn alle Gebiete fertig sind.
+- **HUD**: Leiste unter der Münzanzeige mit „Felder 17/25“ und einem Punkt je Gebiet (erledigt / aktuell / gesperrt). Eigene Gestaltung: Pastell, abgerundet, Bodensee-Blau, keine fremde Optik übernehmen.
+- **Ziele**: neuer Typ `area` („Erschließe das Hügelland“).
+- **Speicherformat** `saveVersion` 6: `area: Index des aktuellen Gebiets`. Migration: alte Spielstände bekommen das höchste Gebiet, in dem schon ein Feld frei ist; alle davor gelten als erschlossen.
+
+## Meilenstein 6b – Münz-Upgrades pro Region
+
+Zusätzlich zu den dauerhaften Seeperlen-Upgrades:
+
+- Im Upgrade-Fenster ein zweiter Reiter „Diese Region“ mit Upgrades für Münzen, z. B. „Sägewerk +10 % Tempo“ oder „Handel Holz +50 % Preis“.
+- Feste Liste je Region in der Config (5–8 Einträge, Kosten steigen).
+- Werden beim Regionswechsel zurückgesetzt (wie Münzen und Gebäude).
+- Speicherformat: `regionUpgrades: { id: true }`.
+
+## Meilenstein 7 – Balancing & Release
+
+- Test-Bot erweitern (Gebiete, Münz-Upgrades). Zielzeiten: Region 1 ca. 30–45 min, danach je Region länger.
+- Erstes Gebiet soll in ca. 5 min fertig sein, damit der erste Gebietswechsel früh kommt.
+- Release-Texte (Store-Beschreibung, README) selbst formulieren, ohne Bezug auf andere Spiele.
+
+## Rechte-Checkliste (vor jedem Release prüfen)
+
+Spielmechaniken und Genre-Ideen sind nicht urheberrechtlich geschützt. Geschützt sind die konkrete Gestaltung, Namen und Marken. Daher:
+
+- [x] Keine Namen, Logos, Texte, Grafiken, Sounds oder Kartenlayouts anderer Spiele. Alles ist prozedural (Canvas/SVG) oder selbst geschrieben.
+- [x] Kein Verweis auf andere Spiele im Repo (Spezifikation neutral formuliert). Hinweis: Ältere Commits in der Git-Historie enthalten noch einen Namen. Er lässt sich nur durch Umschreiben der Historie entfernen, das ist nicht nötig.
+- [x] Eigenes Raster (Achtecke + Quadrate) und eigene Optik statt Sechsecke. Auch die UI-Fenster (z. B. Upgrades) bekommen eine eigene Gestaltung und kein nachgebautes Layout.
+- [x] Keine echten Firmen- oder Produktmarken (kein Luftschiff-Markenname, keine Firmennamen).
+- [x] Veranstaltungen nur mit allgemeinen Namen („Kinderfest“, „Seefest“, „Festspielsommer am See“), nicht mit geschützten Veranstaltungsnamen.
+- [x] Ortsnamen und Landschaften (Ravensburg, Lindau, Säntis …) sind als geografische Angaben frei nutzbar.
+- [ ] Vor einer Veröffentlichung den Spielnamen in den Markenregistern prüfen (DPMA, EUIPO, ggf. Swissreg). Ein Namen mit klarem Abstand zu bekannten Titeln wählen.
+- [ ] Schriften: nur Systemschriften (aktuell der Fall). Wird eine Webschrift eingebunden, Lizenz prüfen (z. B. OFL).
+- [ ] Store-Texte und Screenshots selbst erstellen. Fremde Beschreibungen nicht übernehmen oder umschreiben.
